@@ -1,7 +1,12 @@
-#%%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+
+from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+from pydicom import dcmread
+import matplotlib.pyplot as plt
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -11,7 +16,15 @@ class MyWindow(QMainWindow):
     def initUI(self):
         self.setWindowTitle("AI Labeling DICOM Viewer")
         self.setFixedSize(700, 700)
+        
+        self.ds = None
+        self.main_widget = QWidget()
+        self.setCentralWidget(self.main_widget)
 
+        self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        vbox = QVBoxLayout(self.main_widget)
+        vbox.addWidget(self.canvas)
+        
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
 
@@ -96,6 +109,16 @@ class MyWindow(QMainWindow):
 
     def open_file(self):
         # 파일 열기 기능 구현
+        fname = QFileDialog.getOpenFileName(self, 'Open file', './')
+        print(type(fname), fname)
+        # self.ui.label_filename.setText(fname[0])
+        if fname[0]:
+            self.ds = dcmread(fname[0])
+            with self.ds:
+                ds = self.ds
+                print(type(ds.pixel_array))
+                self.ax = self.canvas.figure.subplots()
+                self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
         print("Open File")
 
     def save(self):
@@ -145,4 +168,3 @@ window = MyWindow()
 window.show()
 sys.exit(app.exec_())
 
-# %%
