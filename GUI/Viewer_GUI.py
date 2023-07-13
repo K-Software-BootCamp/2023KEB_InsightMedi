@@ -118,7 +118,14 @@ class MyWindow(QMainWindow):
                 ds = self.ds
                 print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
-                self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
+                pixel = ds.pixel_array
+                print(pixel[0])
+                print(len(pixel.shape))
+                if len(pixel.shape) == 3:
+                    self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
+                else:
+                    self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+                    
         print("Open File")
 
     def save(self):
