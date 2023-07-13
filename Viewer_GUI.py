@@ -6,47 +6,87 @@ from PyQt5.QtGui import *
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.initUI()
 
+    def initUI(self):
         self.setWindowTitle("AI Labeling DICOM Viewer")
         self.setFixedSize(700, 700)
-        self.setWindowIcon(QIcon("GUI_icon.png"))
 
-        menu_bar = self.menuBar()
-        self.setMenuBar(menu_bar)
-        menu_bar.setNativeMenuBar(False)    # MacOs에서만 필요한 코드입니다. 다른 운영체제라면 삭제하세요.
+        # Create a toolbar
+        toolbar = self.addToolBar("Toolbar")
 
-        file_menu = menu_bar.addMenu("File")
+        '''
+        파일 도구
+        '''
 
         # 파일 열기 버튼
-        open_action = QAction("Open File", self)
+        open_action = QAction(QIcon('open_file_icon.png'), "파일 열기", self)
         open_action.triggered.connect(self.open_file)
-        file_menu.addAction(open_action)
+        toolbar.addAction(open_action)
 
         # 파일 저장하기 버튼
-        save_action = QAction("Save", self)
+        save_action = QAction(QIcon('save_icon.png'), "저장", self)
         save_action.triggered.connect(self.save)
-        file_menu.addAction(save_action)
+        toolbar.addAction(save_action)
 
         # 파일 다른 이름으로 저장하기 버튼
-        save_as_action = QAction("Save As...", self)
+        save_as_action = QAction(QIcon('save_as_icon.png'), "다른 이름으로 저장", self)
         save_as_action.triggered.connect(self.save_as)
-        file_menu.addAction(save_as_action)
+        toolbar.addAction(save_as_action)
 
-        image_menu = menu_bar.addMenu("Image")
+        toolbar.addSeparator()  # 구분선
 
-        windowing = QMenu("Windowing", self)
-
-        windowing_action = QAction("Apply Windowing", self)
+        # 윈도잉 액션
+        windowing_action = QAction(QIcon('windowing_icon.png'), "윈도잉", self)
         windowing_action.triggered.connect(self.apply_windowing)
-        windowing.addAction(windowing_action)
+        toolbar.addAction(windowing_action)
 
-        image_menu.addMenu(windowing)
+        toolbar.addSeparator()  # 구분선
 
-        annotation_menu = menu_bar.addMenu("Annotation Tool")
+        '''
+        어노테이션 도구
+        '''
 
-        draw_action = QAction("Draw", self)
-        draw_action.triggered.connect(self.start_drawing)
-        annotation_menu.addAction(draw_action)
+        # 직선 액션
+        straightline_action = QAction(QIcon('straightline_icon.png'), "직선", self)
+        straightline_action.triggered.connect(self.draw_straight_line)
+        toolbar.addAction(straightline_action)
+
+        # 원 액션
+        circle_action = QAction(QIcon('circle_icon.png'), "원", self)
+        circle_action.triggered.connect(self.draw_circle)
+        toolbar.addAction(circle_action)
+
+        # 사각형 액션
+        rectangle_action = QAction(QIcon('rectangle_icon.png'), "사각형", self)
+        rectangle_action.triggered.connect(self.draw_rectangle)
+        toolbar.addAction(rectangle_action)
+
+        # 곡선 액션
+        curve_action = QAction(QIcon('curve_icon.png'), "곡선", self)
+        curve_action.triggered.connect(self.draw_curve)
+        toolbar.addAction(curve_action)
+
+        # 자유형 액션
+        freehand_action = QAction(QIcon('freehand_icon.png'), "자유형", self)
+        freehand_action.triggered.connect(self.draw_freehand)
+        toolbar.addAction(freehand_action)
+
+        toolbar.addSeparator()  # 구분선
+
+        '''
+        보기 도구
+        '''
+
+        # 확대 액션
+        zoom_in_action = QAction(QIcon('zoom_in_icon.png'), "확대", self)
+        zoom_in_action.triggered.connect(self.zoom_in)
+        toolbar.addAction(zoom_in_action)
+
+        # 축소 액션
+        zoom_out_action = QAction(QIcon('zoom_out_icon.png'), "축소", self)
+        zoom_out_action.triggered.connect(self.zoom_out)
+        toolbar.addAction(zoom_out_action)
 
         # 창 중앙 정렬
         screen_geometry = QApplication.desktop().availableGeometry()
@@ -70,9 +110,33 @@ class MyWindow(QMainWindow):
         # Windowing 적용 기능 구현
         print("Apply Windowing")
 
-    def start_drawing(self):
-        # 그리기 기능 시작
-        print("Start Drawing")
+    def draw_straight_line(self):
+        # 직선 그리기 기능 구현
+        print("Draw Straight Line")
+
+    def draw_circle(self):
+        # 원 그리기 기능 구현
+        print("Draw Circle")
+
+    def draw_rectangle(self):
+        # 사각형 그리기 기능 구현
+        print("Draw Rectangle")
+
+    def draw_curve(self):
+        # 곡선 그리기 기능 구현
+        print("Draw Curve")
+
+    def draw_freehand(self):
+        # 자유형 그리기 기능 구현
+        print("Draw Freehand")
+
+    def zoom_in(self):
+        # 확대 보기 기능 구현
+        print("Zoom in")
+
+    def zoom_out(self):
+        # 축소 보기 기능 구현
+        print("Zoom out")
 
 
 app = QApplication(sys.argv)
