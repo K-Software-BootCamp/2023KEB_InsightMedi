@@ -53,7 +53,7 @@ class MyWindow(QMainWindow):
         toolbar.addSeparator()  # 구분선
 
         # 윈도잉 액션
-        windowing_action = QAction(QIcon('GUI/icon/windowing_icon.png'), "윈도잉", self)
+        windowing_action = QAction(QIcon('icon/windowing_icon.png'), "윈도잉", self)
         windowing_action.triggered.connect(self.apply_windowing)
         toolbar.addAction(windowing_action)
 
@@ -165,6 +165,12 @@ class MyWindow(QMainWindow):
             if self.center and self.radius and self.is_drawing == False:
                 self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
+        
+        elif self.annotation_mode == "freehand":
+            if self.is_drawing == False and len(self.points) > 1:
+                x, y = zip(*self.points)
+                self.annotation = self.ax.plot(x,y,color='red')
+                self.canvas.draw()
 
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
@@ -256,7 +262,29 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
-        print("Draw Freehand")
+        self.canvas.mpl_connect('button_press_event', self.on_freehand_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_freehand_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_freehand_mouse_release)
+
+        self.annotation_mode = "freehand"
+        self.points = []
+        self.is_drawing = False
+    
+    def on_freehand_mouse_press(self, event):
+        if event.button == 1:
+            self.is_drawing = True
+            self.points = [(event.xdata, event.ydata)]
+    
+    def on_freehand_mouse_move(self, event):
+        if self.is_drawing:
+            self.points.append((event.xdata, event.ydata))
+            self.draw_annotation()
+    
+    def on_freehand_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.draw_annotation()
+
 
     def zoom_in(self):
         # 확대 보기 기능 구현
