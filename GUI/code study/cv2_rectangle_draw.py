@@ -35,10 +35,12 @@ def draw_rectangle(event, x, y, flags, param):
 	#cv2.circle(img,(x,y),5,(0,255,0),-1)
 
 # img 불러오기
-filepath = "Data_file/0002.DCM"
+filepath = "sample/MR000000.dcm"
 dcm = pydicom.dcmread(filepath)
-images = dcm.pixel_array
-img = images[0]
+img = dcm.pixel_array
+print(img)
+print(img.shape)
+
 #img = np.zeros((500,500,3), np.uint8)    검은 화면 배경
 #img = cv2.imread('car.jpg')    # jpg 파일 배경
 
