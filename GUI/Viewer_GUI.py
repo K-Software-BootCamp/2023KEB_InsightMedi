@@ -25,7 +25,7 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
         
         self.file_name = None
-        self.label_dict = {"line": [], "rectangle": [], "circle": []}
+        self.label_dict = {"line": [], "rectangle": [], "circle": [], "freehand": []}
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         vbox = QVBoxLayout(self.main_widget)
@@ -127,6 +127,7 @@ class MyWindow(QMainWindow):
                 self.label_dict["line"] = t["line"]
                 self.label_dict["rectangle"] = t["rectangle"]
                 self.label_dict["circle"] = t["circle"]
+                self.label_dict["freehand"] = t["freehand"]
                 label = True
         except FileNotFoundError:
             label = False
@@ -159,6 +160,12 @@ class MyWindow(QMainWindow):
                         self.annotation = self.ax.add_patch(
                                 Circle(coor[0], coor[1], fill=False, edgecolor='red'))
                     self.canvas.draw()
+                
+                if self.label_dict["freehand"]:
+                    freehand = self.label_dict["freehand"]
+                    for fh in freehand:
+                        x_coords, y_coords = zip(*fh)
+                        self.annotation = self.ax.plot(x_coords, y_coords, color = 'red')
                                         
         print("Open File")
         self.canvas.draw()
@@ -209,13 +216,13 @@ class MyWindow(QMainWindow):
                 x, y = zip(*self.points)
                 self.annotation = self.ax.plot(x,y,color='red')
                 self.canvas.draw()
+                self.label_dict["freehand"].append(self.points)
 
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
         self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_line_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_line_mouse_release)
+        self.canvas.mpl_connect('button_release_event', self.on_line_mouse_release)
 
         self.annotation_mode = "line"
         self.line_start = None
