@@ -1,8 +1,6 @@
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-import cv2
-import numpy as np
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -37,17 +35,17 @@ class MyWindow(QMainWindow):
         '''
 
         # 파일 열기 버튼
-        open_action = QAction(QIcon('GUI/icon/open_file_icon.png'), "파일 열기", self)
+        open_action = QAction(QIcon('icon/open_file_icon.png'), "파일 열기", self)
         open_action.triggered.connect(self.open_file)
         toolbar.addAction(open_action)
 
         # 파일 저장하기 버튼
-        save_action = QAction(QIcon('GUI/icon/save_icon.png'), "저장", self)
+        save_action = QAction(QIcon('icon/save_icon.png'), "저장", self)
         save_action.triggered.connect(self.save)
         toolbar.addAction(save_action)
 
         # 파일 다른 이름으로 저장하기 버튼
-        save_as_action = QAction(QIcon('GUI/icon/save_as_icon.png'), "다른 이름으로 저장", self)
+        save_as_action = QAction(QIcon('icon/save_as_icon.png'), "다른 이름으로 저장", self)
         save_as_action.triggered.connect(self.save_as)
         toolbar.addAction(save_as_action)
 
@@ -174,9 +172,6 @@ class MyWindow(QMainWindow):
 
     def draw_annotation(self):
         if self.annotation_mode == "line":
-            if hasattr(self, 'annotation') and self.annotation:
-                self.annotation.remove()
-
             if self.line_start and self.line_end:
                 x = [self.line_start[0], self.line_end[0]]
                 y = [self.line_start[1], self.line_end[1]]
@@ -185,7 +180,9 @@ class MyWindow(QMainWindow):
         elif self.annotation_mode == "rectangle":
             pass
         elif self.annotation_mode == "circle":
-            pass
+            if self.center and self.radius:
+                self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
+                self.canvas.draw()
 
     def draw_circle(self):
         self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
@@ -216,15 +213,7 @@ class MyWindow(QMainWindow):
             self.radius = np.sqrt(dx ** 2 + dy ** 2)
             self.draw_annotation()
 
-    def draw_annotation(self):
-        if hasattr(self, 'annotation') and self.annotation:
-            self.annotation.remove()
-
-        if self.center and self.radius:
-            self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
-            self.canvas.draw()
-
-    def draw_rectangle(self, event, x, y, flags, param):
+    def draw_rectangle(self):
         # 사각형 그리기 기능 구현
         self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
@@ -242,19 +231,16 @@ class MyWindow(QMainWindow):
     def on_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
-            self.draw_annotation()
+            self.draw_rectangle_annotation()
 
     def on_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
-            self.draw_annotation()
+            self.draw_rectangle_annotation()
 
-    def draw_annotation(self):
-        if hasattr(self, 'annotation') and self.annotation:
-            self.annotation.remove()
-
-        if self.start and self.end:
+    def draw_rectangle_annotation(self):
+        if self.start and self.end and self.is_drawing == False:
             width = abs(self.start[0] - self.end[0])
             height = abs(self.start[1] - self.end[1])
             x = min(self.start[0], self.end[0])
@@ -278,8 +264,6 @@ class MyWindow(QMainWindow):
         # 축소 보기 기능 구현
         print("Zoom out")
 
-events = [i for i in dir(cv2) if "EVENT" in i]
-print("events:",events)
 
 app = QApplication(sys.argv)
 
