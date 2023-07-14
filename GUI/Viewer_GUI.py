@@ -7,6 +7,8 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from pydicom import dcmread
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Circle, Rectangle
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -16,7 +18,7 @@ class MyWindow(QMainWindow):
     def initUI(self):
         self.setWindowTitle("AI Labeling DICOM Viewer")
         self.setFixedSize(700, 700)
-        
+
         self.ds = None
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
@@ -24,7 +26,7 @@ class MyWindow(QMainWindow):
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         vbox = QVBoxLayout(self.main_widget)
         vbox.addWidget(self.canvas)
-        
+
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
 
@@ -111,30 +113,28 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         print(type(fname), fname)
-
+        # self.ui.label_filename.setText(fname[0])
         if fname[0]:
             self.ds = dcmread(fname[0])
-            with self.ds as ds:
-                # print(type(ds.pixel_array))
+            with self.ds:
+                ds = self.ds
+                print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
-                # print(pixel[0], pixel.shape)
-                # print(len(pixel.shape))
+                print(pixel[0])
+                print(len(pixel.shape))
                 if len(pixel.shape) == 3:
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
-<<<<<<< HEAD
-=======
 
->>>>>>> b5d22c9427cbe1b1ed336ad0a55dc2df16cb8d61
-                self.canvas.draw()
-                    
         print("Open File")
+        self.canvas.draw()
+        plt.show()
 
     def save(self):
         # 저장 기능 구현
-        print("Save")
+        print("Save...")
 
     def save_as(self):
         # 다른 이름으로 저장 기능 구현
@@ -146,16 +146,120 @@ class MyWindow(QMainWindow):
 
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
-        print("Draw Straight Line")
+        self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_line_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_line_mouse_release)
+
+        self.annotation_mode = "line"
+        self.line_start = None
+        self.line_end = None
+        self.is_drawing = False
+
+    def on_line_mouse_press(self, event):
+        if event.button == 1:
+            self.is_drawing = True
+            self.line_start = (event.xdata, event.ydata)
+
+    def on_line_mouse_move(self, event):
+        if self.is_drawing:
+            self.line_end = (event.xdata, event.ydata)
+            self.draw_annotation()
+
+    def on_line_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.line_end = (event.xdata, event.ydata)
+            self.draw_annotation()
+
+    def draw_annotation(self):
+        if self.annotation_mode == "line":
+            if hasattr(self, 'annotation') and self.annotation:
+                self.annotation.remove()
+
+            if self.line_start and self.line_end:
+                x = [self.line_start[0], self.line_end[0]]
+                y = [self.line_start[1], self.line_end[1]]
+                self.annotation = self.ax.plot(x, y, color='red')[0]
+                self.canvas.draw()
+        elif self.annotation_mode == "rectangle":
+            pass
+        elif self.annotation_mode == "circle":
+            pass
 
     def draw_circle(self):
-        # 원 그리기 기능 구현
-        print("Draw Circle")
+        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+
+        self.center = None
+        self.radius = None
+        self.is_drawing = False
+
+    def on_mouse_press(self, event):
+        if event.button == 1:
+            self.is_drawing = True
+            self.center = (event.xdata, event.ydata)
+
+    def on_mouse_move(self, event):
+        if self.is_drawing:
+            dx = event.xdata - self.center[0]
+            dy = event.ydata - self.center[1]
+            self.radius = np.sqrt(dx ** 2 + dy ** 2)
+            self.draw_annotation()
+
+    def on_mouse_release(self, event):
+        if event.button == 1:  # Left mouse button
+            self.is_drawing = False
+            dx = event.xdata - self.center[0]
+            dy = event.ydata - self.center[1]
+            self.radius = np.sqrt(dx ** 2 + dy ** 2)
+            self.draw_annotation()
+
+    def draw_annotation(self):
+        if hasattr(self, 'annotation') and self.annotation:
+            self.annotation.remove()
+
+        if self.center and self.radius:
+            self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
+            self.canvas.draw()
 
     def draw_rectangle(self):
         # 사각형 그리기 기능 구현
-        
-        print("Draw Rectangle")
+        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+
+        self.start = None
+        self.end = None
+        self.is_drawing = False
+
+    def on_mouse_press(self, event):
+        if event.button == 1:
+            self.is_drawing = True
+            self.start = (event.xdata, event.ydata)
+
+    def on_mouse_move(self, event):
+        if self.is_drawing:
+            self.end = (event.xdata, event.ydata)
+            self.draw_annotation()
+
+    def on_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.end = (event.xdata, event.ydata)
+            self.draw_annotation()
+
+    def draw_annotation(self):
+        if hasattr(self, 'annotation') and self.annotation:
+            self.annotation.remove()
+
+        if self.start and self.end:
+            width = abs(self.start[0] - self.end[0])
+            height = abs(self.start[1] - self.end[1])
+            x = min(self.start[0], self.end[0])
+            y = min(self.start[1], self.end[1])
+            self.annotation = self.ax.add_patch(Rectangle((x, y), width, height, fill=False, edgecolor='red'))
+            self.canvas.draw()
 
     def draw_curve(self):
         # 곡선 그리기 기능 구현
@@ -179,4 +283,3 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
-
