@@ -113,22 +113,24 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         print(type(fname), fname)
-        # self.ui.label_filename.setText(fname[0])
+
         if fname[0]:
             self.ds = dcmread(fname[0])
-            with self.ds:
-                ds = self.ds
-                print(type(ds.pixel_array))
+            with self.ds as ds:
+                # print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
                 self.image = pixel
-                print(pixel[0])
-                print(len(pixel.shape))
+                #print(pixel[0])
+                #print(len(pixel.shape))
                 if len(pixel.shape) == 3:
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+<<<<<<< HEAD
+=======
 
+>>>>>>> b5d22c9427cbe1b1ed336ad0a55dc2df16cb8d61
                 self.canvas.draw()
                     
         print("Open File")
