@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import json
+import os
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -119,10 +120,16 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         label = False
-        self.file_name = fname[0].split(sep='/')[-1]
-        print(self.file_name)
+        file_name = fname[0].split(sep='/')[-1]
+        path = os.path.dirname(fname[0])
         try:
-            with open(f"{self.file_name}_labeling.txt", "r") as f:
+            os.mkdir(path + "/labeling")
+        except FileExistsError:
+            pass
+        self.fname = path + "/labeling/" + f"{file_name}_labeling.txt"
+        print(self.fname)
+        try:
+            with open(self.fname, "r") as f:
                 t = json.load(f)
                 self.label_dict["line"] = t["line"]
                 self.label_dict["rectangle"] = t["rectangle"]
@@ -173,7 +180,7 @@ class MyWindow(QMainWindow):
 
     def save(self):
         # 저장 기능 구현
-        with open(f"{self.file_name}_labeling.txt", 'w') as f:
+        with open(f"{self.fname}", 'w') as f:
             f.write(json.dumps(self.label_dict))
         print("Save...")
 
@@ -233,7 +240,6 @@ class MyWindow(QMainWindow):
         if event.button == 1:
             self.is_drawing = True
             self.line_start = (event.xdata, event.ydata)
-            #print(self.line_start)
 
     def on_line_mouse_move(self, event):
         if self.is_drawing:
@@ -244,7 +250,6 @@ class MyWindow(QMainWindow):
         if event.button == 1:
             self.is_drawing = False
             self.line_end = (event.xdata, event.ydata)
-            #print(self.line_end)
             self.draw_annotation()
 
     def draw_circle(self):
@@ -293,6 +298,7 @@ class MyWindow(QMainWindow):
         self.is_drawing = False
 
     def on_mouse_press(self, event):
+        print("rec_press")
         if event.button == 1:
             self.is_drawing = True
             self.start = (event.xdata, event.ydata)
