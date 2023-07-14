@@ -18,7 +18,7 @@ class MyWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("AI Labeling DICOM Viewer")
+        self.setWindowTitle("InsightMedi Viewer")
         self.setFixedSize(700, 700)
 
         self.ds = None
@@ -37,24 +37,24 @@ class MyWindow(QMainWindow):
         '''
 
         # 파일 열기 버튼
-        open_action = QAction(QIcon('icon/open_file_icon.png'), "파일 열기", self)
+        open_action = QAction(QIcon('GUI/icon/open_file_icon.png'), "파일 열기", self)
         open_action.triggered.connect(self.open_file)
         toolbar.addAction(open_action)
 
         # 파일 저장하기 버튼
-        save_action = QAction(QIcon('icon/save_icon.png'), "저장", self)
+        save_action = QAction(QIcon('GUI/icon/save_icon.png'), "저장", self)
         save_action.triggered.connect(self.save)
         toolbar.addAction(save_action)
 
         # 파일 다른 이름으로 저장하기 버튼
-        save_as_action = QAction(QIcon('icon/save_as_icon.png'), "다른 이름으로 저장", self)
+        save_as_action = QAction(QIcon('GUI/icon/save_as_icon.png'), "다른 이름으로 저장", self)
         save_as_action.triggered.connect(self.save_as)
         toolbar.addAction(save_as_action)
 
         toolbar.addSeparator()  # 구분선
 
         # 윈도잉 액션
-        windowing_action = QAction(QIcon('icon/windowing_icon.png'), "윈도잉", self)
+        windowing_action = QAction(QIcon('GUI/icon/windowing_icon.png'), "윈도잉", self)
         windowing_action.triggered.connect(self.apply_windowing)
         toolbar.addAction(windowing_action)
 
@@ -123,25 +123,12 @@ class MyWindow(QMainWindow):
                 print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
-<<<<<<< HEAD
-                self.image = pixel
-                #print(pixel[0])
-                #print(len(pixel.shape))
-=======
                 print(pixel[0])
                 print(len(pixel.shape))
->>>>>>> 0866ff407763ebca999fc7d2de49383a4b8ac5b5
                 if len(pixel.shape) == 3:
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
-<<<<<<< HEAD
-            
-            self.canvas.draw()
-                    
-=======
-
->>>>>>> 0866ff407763ebca999fc7d2de49383a4b8ac5b5
         print("Open File")
         self.canvas.draw()
         plt.show()
@@ -239,26 +226,6 @@ class MyWindow(QMainWindow):
 
     def draw_rectangle(self, event, x, y, flags, param):
         # 사각형 그리기 기능 구현
-<<<<<<< HEAD
-        img = self.image
-
-        if event == cv2.EVENT_LBUTTONDOWN:    # 마우스를 누른 상태
-            self.click = True
-            self.x1, self.y1 = x, y
-            print("사각형의 왼쪽 위 설정: ", str(self.x1) + "," + str(self.y1))
-        
-        elif event == cv2.EVENT_MOUSEMOVE:    # 마우스 이동
-            if self.click == True:
-                cv2.rectangle(img, (self.x1, self.y1), (x,y), (255,0,0),-1)
-                print("마우스 이동: (%d, %d), (%d, %d)"%(self.x1, self.y1, x, y))
-        
-        elif event == cv2.EVENT_LBUTTONUP:    # 마우스 클릭 떼면
-            self.click = False
-            cv2.rectangle(img, (self.x1, self.y1), (x,y), (255,0,0), -1)
-            print("마우스 클릭 종료: (%d, %d), (%d, %d)"%(self.x1, self.y1, x, y))
-        
-        print("Draw Rectangle")
-=======
         self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
@@ -294,7 +261,6 @@ class MyWindow(QMainWindow):
             y = min(self.start[1], self.end[1])
             self.annotation = self.ax.add_patch(Rectangle((x, y), width, height, fill=False, edgecolor='red'))
             self.canvas.draw()
->>>>>>> 0866ff407763ebca999fc7d2de49383a4b8ac5b5
 
     def draw_curve(self):
         # 곡선 그리기 기능 구현
@@ -320,8 +286,3 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 0866ff407763ebca999fc7d2de49383a4b8ac5b5
