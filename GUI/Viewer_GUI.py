@@ -125,6 +125,8 @@ class MyWindow(QMainWindow):
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+
+                self.canvas.draw()
                     
         print("Open File")
 
