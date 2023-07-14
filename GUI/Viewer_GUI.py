@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle, Rectangle
 
+
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -17,7 +18,7 @@ class MyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
-        self.setFixedSize(700, 700)
+        #self.setFixedSize(700, 700)
 
         self.ds = None
         self.main_widget = QWidget()
@@ -143,13 +144,14 @@ class MyWindow(QMainWindow):
         # Windowing 적용 기능 구현
         print("Apply Windowing")
 
-    def draw_annotation(self):
+    def draw_annotation(self):   # 영역 지정이 된 이후 annotation 그리기
         if self.annotation_mode == "line":
             if self.line_start and self.line_end and self.is_drawing == False:
                 x = [self.line_start[0], self.line_end[0]]
                 y = [self.line_start[1], self.line_end[1]]
                 self.annotation = self.ax.plot(x, y, color='red')[0]
                 self.canvas.draw()
+
         elif self.annotation_mode == "rectangle":
             if self.start and self.end and self.is_drawing == False:
                 width = abs(self.start[0] - self.end[0])
@@ -158,6 +160,7 @@ class MyWindow(QMainWindow):
                 y = min(self.start[1], self.end[1])
                 self.annotation = self.ax.add_patch(Rectangle((x, y), width, height, fill=False, edgecolor='red'))
                 self.canvas.draw()
+
         elif self.annotation_mode == "circle":
             if self.center and self.radius and self.is_drawing == False:
                 self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
@@ -191,28 +194,28 @@ class MyWindow(QMainWindow):
             self.draw_annotation()
 
     def draw_circle(self):
-        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.canvas.mpl_connect('button_press_event', self.on_circle_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_circle_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_circle_mouse_release)
 
         self.annotation_mode = "circle"
         self.center = None
         self.radius = None
         self.is_drawing = False
 
-    def on_mouse_press(self, event):
+    def on_circle_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
             self.center = (event.xdata, event.ydata)
 
-    def on_mouse_move(self, event):
+    def on_circle_mouse_move(self, event):
         if self.is_drawing:
             dx = event.xdata - self.center[0]
             dy = event.ydata - self.center[1]
             self.radius = np.sqrt(dx ** 2 + dy ** 2)
             self.draw_annotation()
 
-    def on_mouse_release(self, event):
+    def on_circle_mouse_release(self, event):
         if event.button == 1:  # Left mouse button
             self.is_drawing = False
             dx = event.xdata - self.center[0]
@@ -222,26 +225,26 @@ class MyWindow(QMainWindow):
 
     def draw_rectangle(self):
         # 사각형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.canvas.mpl_connect('button_press_event', self.on_rectangle_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_rectangle_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_rectangle_mouse_release)
 
         self.annotation_mode = "rectangle"
         self.start = None
         self.end = None
         self.is_drawing = False
 
-    def on_mouse_press(self, event):
+    def on_rectangle_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
             self.start = (event.xdata, event.ydata)
 
-    def on_mouse_move(self, event):
+    def on_rectangle_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
             self.draw_annotation()
 
-    def on_mouse_release(self, event):
+    def on_rectangle_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
