@@ -111,20 +111,20 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         print(type(fname), fname)
-        # self.ui.label_filename.setText(fname[0])
+
         if fname[0]:
             self.ds = dcmread(fname[0])
-            with self.ds:
-                ds = self.ds
-                print(type(ds.pixel_array))
+            with self.ds as ds:
+                # print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
-                print(pixel[0])
-                print(len(pixel.shape))
+                # print(pixel[0], pixel.shape)
+                # print(len(pixel.shape))
                 if len(pixel.shape) == 3:
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+                self.canvas.draw()
                     
         print("Open File")
 
@@ -150,6 +150,7 @@ class MyWindow(QMainWindow):
 
     def draw_rectangle(self):
         # 사각형 그리기 기능 구현
+        
         print("Draw Rectangle")
 
     def draw_curve(self):
