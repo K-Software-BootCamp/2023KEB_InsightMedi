@@ -19,7 +19,7 @@ class MyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
-        self.setFixedSize(700, 700)
+        #self.setFixedSize(700, 700)
 
         self.ds = None
         self.main_widget = QWidget()
@@ -58,8 +58,7 @@ class MyWindow(QMainWindow):
         toolbar.addSeparator()  # 구분선
 
         # 윈도잉 액션
-        windowing_action = QAction(
-            QIcon('GUI/icon/windowing_icon.png'), "윈도잉", self)
+        windowing_action = QAction(QIcon('icon/windowing_icon.png'), "윈도잉", self)
         windowing_action.triggered.connect(self.apply_windowing)
         toolbar.addAction(windowing_action)
 
@@ -70,8 +69,7 @@ class MyWindow(QMainWindow):
         '''
 
         # 직선 액션
-        straightline_action = QAction(
-            QIcon('icon/straightline_icon.png'), "직선", self)
+        straightline_action = QAction(QIcon('icon/straightline_icon.png'), "직선", self)
         straightline_action.triggered.connect(self.draw_straight_line)
         toolbar.addAction(straightline_action)
 
@@ -212,7 +210,12 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.add_patch(
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
-                self.label_dict["circle"].append((self.center, self.radius))
+        
+        elif self.annotation_mode == "freehand":
+            if self.is_drawing == False and len(self.points) > 1:
+                x, y = zip(*self.points)
+                self.annotation = self.ax.plot(x,y,color='red')
+                self.canvas.draw()
 
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
@@ -256,7 +259,7 @@ class MyWindow(QMainWindow):
         self.is_drawing = False
 
     def on_mouse_circle_press(self, event):
-        print("cirlce_press")
+        #print("cirlce_press")
         if event.button == 1:
             self.is_drawing = True
             self.center = (event.xdata, event.ydata)
@@ -310,7 +313,29 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
-        print("Draw Freehand")
+        self.canvas.mpl_connect('button_press_event', self.on_freehand_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_freehand_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_freehand_mouse_release)
+
+        self.annotation_mode = "freehand"
+        self.points = []
+        self.is_drawing = False
+    
+    def on_freehand_mouse_press(self, event):
+        if event.button == 1:
+            self.is_drawing = True
+            self.points = [(event.xdata, event.ydata)]
+    
+    def on_freehand_mouse_move(self, event):
+        if self.is_drawing:
+            self.points.append((event.xdata, event.ydata))
+            self.draw_annotation()
+    
+    def on_freehand_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.draw_annotation()
+
 
     def zoom_in(self):
         # 확대 보기 기능 구현
