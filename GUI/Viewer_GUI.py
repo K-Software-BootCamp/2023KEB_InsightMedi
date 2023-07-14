@@ -127,7 +127,7 @@ class MyWindow(QMainWindow):
         except FileExistsError:
             pass
         self.fname = path + "/labeling/" + f"{file_name}_labeling.txt"
-        print(self.fname)
+        # print(self.fname)
         try:
             with open(self.fname, "r") as f:
                 t = json.load(f)
@@ -166,7 +166,7 @@ class MyWindow(QMainWindow):
                         self.annotation = self.ax.add_patch(
                                 Circle(coor[0], coor[1], fill=False, edgecolor='red'))
                     self.canvas.draw()
-                                        
+
         print("Open File")
         self.canvas.draw()
         plt.show()
@@ -210,6 +210,7 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.add_patch(
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
+                self.label_dict["circle"].append((self.center, self.radius))
         
         elif self.annotation_mode == "freehand":
             if self.is_drawing == False and len(self.points) > 1:
