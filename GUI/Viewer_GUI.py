@@ -1,6 +1,8 @@
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+import cv2
+import numpy as np
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -119,6 +121,7 @@ class MyWindow(QMainWindow):
                 print(type(ds.pixel_array))
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
+                self.image = pixel
                 print(pixel[0])
                 print(len(pixel.shape))
                 if len(pixel.shape) == 3:
@@ -150,8 +153,25 @@ class MyWindow(QMainWindow):
         # 원 그리기 기능 구현
         print("Draw Circle")
 
-    def draw_rectangle(self):
+    def draw_rectangle(self, event, x, y, flags, param):
         # 사각형 그리기 기능 구현
+        img = self.image
+
+        if event == cv2.EVENT_LBUTTONDOWN:    # 마우스를 누른 상태
+            self.click = True
+            self.x1, self.y1 = x, y
+            print("사각형의 왼쪽 위 설정: ", str(self.x1) + "," + str(self.y1))
+        
+        elif event == cv2.EVENT_MOUSEMOVE:    # 마우스 이동
+            if self.click == True:
+                cv2.rectangle(img, (self.x1, self.y1), (x,y), (255,0,0),-1)
+                print("마우스 이동: (%d, %d), (%d, %d)"%(self.x1, self.y1, x, y))
+        
+        elif event == cv2.EVENT_LBUTTONUP:    # 마우스 클릭 떼면
+            self.click = False
+            cv2.rectangle(img, (self.x1, self.y1), (x,y), (255,0,0), -1)
+            print("마우스 클릭 종료: (%d, %d), (%d, %d)"%(self.x1, self.y1, x, y))
+        
         print("Draw Rectangle")
 
     def draw_curve(self):
@@ -170,10 +190,13 @@ class MyWindow(QMainWindow):
         # 축소 보기 기능 구현
         print("Zoom out")
 
+events = [i for i in dir(cv2) if "EVENT" in i]
+print("events:",events)
 
 app = QApplication(sys.argv)
 
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
+
 
