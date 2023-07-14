@@ -1,16 +1,16 @@
+#%%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import json
+import numpy as np
 import os
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from pydicom import dcmread
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.patches import Circle, Rectangle
-
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -63,6 +63,9 @@ class MyWindow(QMainWindow):
         toolbar.addAction(windowing_action)
 
         toolbar.addSeparator()  # 구분선
+
+        self.is_panning = False
+        self.pan_start = None
 
         '''
         어노테이션 도구
@@ -344,14 +347,66 @@ class MyWindow(QMainWindow):
             self.is_drawing = False
             self.draw_annotation()
 
-
     def zoom_in(self):
-        # 확대 보기 기능 구현
-        print("Zoom in")
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 0.9, current_xlim[1] * 0.9)
+        new_ylim = (current_ylim[0] * 0.9, current_ylim[1] * 0.9)
+
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
+
+        self.canvas.draw()
+
+    def on_pan_mouse_press(self, event):  # zoom in 상태에서 화면 이동
+        if event.button == 1 and not self.is_panning:
+            self.is_panning = True
+            self.pan_start = (event.x, event.y)
+
+    def on_pan_mouse_move(self, event):
+        if self.is_panning:
+            x_diff = event.x - self.pan_start[0]
+            y_diff = event.y - self.pan_start[1]
+
+            current_xlim = self.ax.get_xlim()
+            current_ylim = self.ax.get_ylim()
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            image_width = self.ds.pixel_array.shape[1]
+            image_height = self.ds.pixel_array.shape[0]
+
+            # DICOM 이미지 경계 안에서 화면 이동하는지 확인
+            if new_xlim[0] >= 0 and new_xlim[1] <= image_width:
+                self.ax.set_xlim(new_xlim)
+
+            if new_ylim[0] >= 0 and new_ylim[1] <= image_height:
+                self.ax.set_ylim(new_ylim)
+
+            self.pan_start = (event.x, event.y)
+            self.canvas.draw()
+
+    def on_pan_mouse_release(self, event):
+        if event.button == 1 and self.is_panning:
+            self.is_panning = False
 
     def zoom_out(self):
-        # 축소 보기 기능 구현
-        print("Zoom out")
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
+        new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
+        
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.draw()
 
 
 app = QApplication(sys.argv)
