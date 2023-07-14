@@ -143,6 +143,26 @@ class MyWindow(QMainWindow):
         # Windowing 적용 기능 구현
         print("Apply Windowing")
 
+    def draw_annotation(self):
+        if self.annotation_mode == "line":
+            if self.line_start and self.line_end and self.is_drawing == False:
+                x = [self.line_start[0], self.line_end[0]]
+                y = [self.line_start[1], self.line_end[1]]
+                self.annotation = self.ax.plot(x, y, color='red')[0]
+                self.canvas.draw()
+        elif self.annotation_mode == "rectangle":
+            if self.start and self.end and self.is_drawing == False:
+                width = abs(self.start[0] - self.end[0])
+                height = abs(self.start[1] - self.end[1])
+                x = min(self.start[0], self.end[0])
+                y = min(self.start[1], self.end[1])
+                self.annotation = self.ax.add_patch(Rectangle((x, y), width, height, fill=False, edgecolor='red'))
+                self.canvas.draw()
+        elif self.annotation_mode == "circle":
+            if self.center and self.radius and self.is_drawing == False:
+                self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
+                self.canvas.draw()
+
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
         self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
@@ -170,25 +190,12 @@ class MyWindow(QMainWindow):
             self.line_end = (event.xdata, event.ydata)
             self.draw_annotation()
 
-    def draw_annotation(self):
-        if self.annotation_mode == "line":
-            if self.line_start and self.line_end:
-                x = [self.line_start[0], self.line_end[0]]
-                y = [self.line_start[1], self.line_end[1]]
-                self.annotation = self.ax.plot(x, y, color='red')[0]
-                self.canvas.draw()
-        elif self.annotation_mode == "rectangle":
-            pass
-        elif self.annotation_mode == "circle":
-            if self.center and self.radius:
-                self.annotation = self.ax.add_patch(Circle(self.center, self.radius, fill=False, edgecolor='red'))
-                self.canvas.draw()
-
     def draw_circle(self):
         self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
 
+        self.annotation_mode = "circle"
         self.center = None
         self.radius = None
         self.is_drawing = False
@@ -219,6 +226,7 @@ class MyWindow(QMainWindow):
         self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
 
+        self.annotation_mode = "rectangle"
         self.start = None
         self.end = None
         self.is_drawing = False
@@ -231,23 +239,14 @@ class MyWindow(QMainWindow):
     def on_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
-            self.draw_rectangle_annotation()
+            self.draw_annotation()
 
     def on_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
-            self.draw_rectangle_annotation()
-
-    def draw_rectangle_annotation(self):
-        if self.start and self.end and self.is_drawing == False:
-            width = abs(self.start[0] - self.end[0])
-            height = abs(self.start[1] - self.end[1])
-            x = min(self.start[0], self.end[0])
-            y = min(self.start[1], self.end[1])
-            self.annotation = self.ax.add_patch(Rectangle((x, y), width, height, fill=False, edgecolor='red'))
-            self.canvas.draw()
-
+            self.draw_annotation()
+    
     def draw_curve(self):
         # 곡선 그리기 기능 구현
         print("Draw Curve")
