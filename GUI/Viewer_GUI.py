@@ -1,4 +1,4 @@
-#%%
+# %%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -12,6 +12,7 @@ from pydicom import dcmread
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
+
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -19,14 +20,15 @@ class MyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
-        #self.setFixedSize(700, 700)
+        # self.setFixedSize(700, 700)
 
         self.ds = None
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
-        
+
         self.file_name = None
-        self.label_dict = {"line": [], "rectangle": [], "circle": [], "freehand": []}
+        self.label_dict = {"line": [], "rectangle": [],
+                           "circle": [], "freehand": []}
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         vbox = QVBoxLayout(self.main_widget)
@@ -40,25 +42,27 @@ class MyWindow(QMainWindow):
         '''
 
         # 파일 열기 버튼
-        open_action = QAction(QIcon('icon/open_file_icon.png'), "파일 열기", self)
+        open_action = QAction(
+            QIcon('icon/open_file_icon.png'), "Open File", self)
         open_action.triggered.connect(self.open_file)
         toolbar.addAction(open_action)
 
         # 파일 저장하기 버튼
-        save_action = QAction(QIcon('icon/save_icon.png'), "저장", self)
+        save_action = QAction(QIcon('icon/save_icon.png'), "Save", self)
         save_action.triggered.connect(self.save)
         toolbar.addAction(save_action)
 
         # 파일 다른 이름으로 저장하기 버튼
         save_as_action = QAction(
-            QIcon('icon/save_as_icon.png'), "다른 이름으로 저장", self)
+            QIcon('icon/save_as_icon.png'), "Save As", self)
         save_as_action.triggered.connect(self.save_as)
         toolbar.addAction(save_as_action)
 
         toolbar.addSeparator()  # 구분선
 
         # 윈도잉 액션
-        windowing_action = QAction(QIcon('icon/windowing_icon.png'), "윈도잉", self)
+        windowing_action = QAction(
+            QIcon('icon/windowing_icon.png'), "Windowing", self)
         windowing_action.triggered.connect(self.apply_windowing)
         toolbar.addAction(windowing_action)
 
@@ -72,28 +76,30 @@ class MyWindow(QMainWindow):
         '''
 
         # 직선 액션
-        straightline_action = QAction(QIcon('icon/straightline_icon.png'), "직선", self)
+        straightline_action = QAction(
+            QIcon('icon/straightline_icon.png'), "Line", self)
         straightline_action.triggered.connect(self.draw_straight_line)
         toolbar.addAction(straightline_action)
 
         # 원 액션
-        circle_action = QAction(QIcon('icon/circle_icon.png'), "원", self)
+        circle_action = QAction(QIcon('icon/circle_icon.png'), "Circle", self)
         circle_action.triggered.connect(self.draw_circle)
         toolbar.addAction(circle_action)
 
         # 사각형 액션
         rectangle_action = QAction(
-            QIcon('icon/rectangle_icon.png'), "사각형", self)
+            QIcon('icon/rectangle_icon.png'), "Rectangle", self)
         rectangle_action.triggered.connect(self.draw_rectangle)
         toolbar.addAction(rectangle_action)
 
         # 곡선 액션
-        curve_action = QAction(QIcon('icon/curve_icon.png'), "곡선", self)
+        curve_action = QAction(QIcon('icon/curve_icon.png'), "Curve", self)
         curve_action.triggered.connect(self.draw_curve)
         toolbar.addAction(curve_action)
 
         # 자유형 액션
-        freehand_action = QAction(QIcon('icon/freehand_icon.png'), "자유형", self)
+        freehand_action = QAction(
+            QIcon('icon/freehand_icon.png'), "Free Hand", self)
         freehand_action.triggered.connect(self.draw_freehand)
         toolbar.addAction(freehand_action)
 
@@ -104,12 +110,14 @@ class MyWindow(QMainWindow):
         '''
 
         # 확대 액션
-        zoom_in_action = QAction(QIcon('icon/zoom_in_icon.png'), "확대", self)
+        zoom_in_action = QAction(
+            QIcon('icon/zoom_in_icon.png'), "Zoom In", self)
         zoom_in_action.triggered.connect(self.zoom_in)
         toolbar.addAction(zoom_in_action)
 
         # 축소 액션
-        zoom_out_action = QAction(QIcon('icon/zoom_out_icon.png'), "축소", self)
+        zoom_out_action = QAction(
+            QIcon('icon/zoom_out_icon.png'), "Zoom Out", self)
         zoom_out_action.triggered.connect(self.zoom_out)
         toolbar.addAction(zoom_out_action)
 
@@ -141,7 +149,7 @@ class MyWindow(QMainWindow):
                 label = True
         except FileNotFoundError:
             label = False
-        
+
         if fname[0]:
             self.ds = dcmread(fname[0])
             with self.ds:
@@ -156,7 +164,8 @@ class MyWindow(QMainWindow):
                 if self.label_dict["line"]:
                     line = self.label_dict["line"]
                     for coor in line:
-                        self.annotation = self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
+                        self.annotation = self.ax.plot(
+                            (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
                         self.canvas.draw()
                 if self.label_dict["rectangle"]:
                     rec = self.label_dict["rectangle"]
@@ -168,15 +177,16 @@ class MyWindow(QMainWindow):
                     cir = self.label_dict["circle"]
                     for coor in cir:
                         self.annotation = self.ax.add_patch(
-                                Circle(coor[0], coor[1], fill=False, edgecolor='red'))
+                            Circle(coor[0], coor[1], fill=False, edgecolor='red'))
                     self.canvas.draw()
-                
+
                 if self.label_dict["freehand"]:
                     freehand = self.label_dict["freehand"]
                     for fh in freehand:
                         x_coords, y_coords = zip(*fh)
-                        self.annotation = self.ax.plot(x_coords, y_coords, color = 'red')
-                                        
+                        self.annotation = self.ax.plot(
+                            x_coords, y_coords, color='red')
+
         print("Open File")
         self.canvas.draw()
         plt.show()
@@ -221,11 +231,11 @@ class MyWindow(QMainWindow):
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
                 self.label_dict["circle"].append((self.center, self.radius))
-        
+
         elif self.annotation_mode == "freehand":
             if self.is_drawing == False and len(self.points) > 1:
                 x, y = zip(*self.points)
-                self.annotation = self.ax.plot(x,y,color='red')
+                self.annotation = self.ax.plot(x, y, color='red')
                 self.canvas.draw()
                 self.label_dict["freehand"].append(self.points)
 
@@ -233,7 +243,8 @@ class MyWindow(QMainWindow):
         # 직선 그리기 기능 구현
         self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_line_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_line_mouse_release)
+        self.canvas.mpl_connect('button_release_event',
+                                self.on_line_mouse_release)
 
         self.annotation_mode = "line"
         self.line_start = None
@@ -270,7 +281,7 @@ class MyWindow(QMainWindow):
         self.is_drawing = False
 
     def on_mouse_circle_press(self, event):
-        #print("cirlce_press")
+        # print("cirlce_press")
         if event.button == 1:
             self.is_drawing = True
             self.center = (event.xdata, event.ydata)
@@ -324,24 +335,27 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_freehand_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_freehand_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_freehand_mouse_release)
+        self.canvas.mpl_connect('button_press_event',
+                                self.on_freehand_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event',
+                                self.on_freehand_mouse_move)
+        self.canvas.mpl_connect('button_release_event',
+                                self.on_freehand_mouse_release)
 
         self.annotation_mode = "freehand"
         self.points = []
         self.is_drawing = False
-    
+
     def on_freehand_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
             self.points = [(event.xdata, event.ydata)]
-    
+
     def on_freehand_mouse_move(self, event):
         if self.is_drawing:
             self.points.append((event.xdata, event.ydata))
             self.draw_annotation()
-    
+
     def on_freehand_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
@@ -359,7 +373,8 @@ class MyWindow(QMainWindow):
 
         self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
         self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
+        self.canvas.mpl_connect('button_release_event',
+                                self.on_pan_mouse_release)
 
         self.canvas.draw()
 
@@ -402,7 +417,7 @@ class MyWindow(QMainWindow):
 
         new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
         new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
-        
+
         self.ax.set_xlim(new_xlim)
         self.ax.set_ylim(new_ylim)
 
