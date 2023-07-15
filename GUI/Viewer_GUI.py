@@ -1,4 +1,3 @@
-# %%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -38,7 +37,7 @@ class MyWindow(QMainWindow):
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
-
+        self.statusBar().showMessage("")
         '''
         파일 도구
         '''
@@ -128,6 +127,15 @@ class MyWindow(QMainWindow):
         center_x = (screen_geometry.width() - self.width()) // 2
         center_y = (screen_geometry.height() - self.height()) // 2
         self.move(center_x, center_y)
+        
+    def set_status_bar(self):
+        try:
+            wl = self.ds.WindowCenter
+            ww = self.ds.WindowWidth
+            # print(wl, ww)
+            self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
+        except AttributeError:
+            pass
 
     def open_file(self):
         # 파일 열기 기능 구현
@@ -144,6 +152,7 @@ class MyWindow(QMainWindow):
             self.ds = dcmread(fname[0])
             with self.ds:
                 ds = self.ds
+                # print(ds)
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
                 self.frame_number = 0
@@ -153,6 +162,7 @@ class MyWindow(QMainWindow):
                 else:
                     self.image = ds.pixel_array
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+            self.set_status_bar()
 
         self.fname = path + f"/{file_name}/" + f"{self.frame_number}.txt"
         # print(self.fname)
@@ -218,10 +228,11 @@ class MyWindow(QMainWindow):
                 #print(f"WW: {ww}")
                 #print(f"WL: {wl}")            
         print("Apply Windowing")
-    
+
     def apply_windowing(self, ww, wl):
         self.ds.WindowCenter = wl
-        self.ds.WindowWith = ww
+        self.ds.WindowWidth = ww
+        self.set_status_bar()
         print(wl, ww)
         modality_lut_image = apply_modality_lut(self.image, self.ds)
         voi_lut_image = apply_voi_lut(modality_lut_image, self.ds)
@@ -458,5 +469,3 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
-
-# %%
