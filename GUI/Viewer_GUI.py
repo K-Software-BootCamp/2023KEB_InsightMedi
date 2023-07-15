@@ -9,6 +9,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from pydicom import dcmread
+from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
@@ -59,7 +60,7 @@ class MyWindow(QMainWindow):
 
         # 윈도잉 액션
         windowing_action = QAction(QIcon('icon/windowing_icon.png'), "윈도잉", self)
-        windowing_action.triggered.connect(self.apply_windowing)
+        windowing_action.triggered.connect(self.windowing_input_dialog)
         toolbar.addAction(windowing_action)
 
         toolbar.addSeparator()  # 구분선
@@ -149,8 +150,10 @@ class MyWindow(QMainWindow):
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
                 if len(pixel.shape) == 3:
+                    self.image = ds.pixel_array[0]
                     self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
                 else:
+                    self.image = ds.pixel_array
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
             if label:
                 if self.label_dict["line"]:
@@ -191,9 +194,33 @@ class MyWindow(QMainWindow):
         # 다른 이름으로 저장 기능 구현
         print("Save As...")
 
-    def apply_windowing(self):
+    def windowing_input_dialog(self):
         # Windowing 적용 기능 구현
+        ww, ww_flag = QInputDialog.getText(self, "Change Windowing Value", "Enter the WW: ")
+
+        if ww_flag:
+            wl, wl_flag = QInputDialog.getText(self, "Change Windowing Value", "Enter the WL: ")
+
+            if wl_flag:
+                self.apply_windowing(ww, wl)
+                #print(f"WW: {ww}")
+                #print(f"WL: {wl}")            
         print("Apply Windowing")
+    
+    def apply_windowing(self, ww, wl):
+        self.ds.WindowCenter = wl
+        self.ds.WindowWith = ww
+        print(wl, ww)
+        modality_lut_image = apply_modality_lut(self.image, self.ds)
+        voi_lut_image = apply_voi_lut(modality_lut_image, self.ds)
+
+        comparison = voi_lut_image == self.image
+        mismatch_count = np.count_nonzero(comparison == False)
+        print(voi_lut_image)
+        print(mismatch_count)
+
+        self.ax.imshow(voi_lut_image, cmap=plt.cm.gray)
+        self.canvas.draw()     
 
     def draw_annotation(self):
         if self.annotation_mode == "line":
@@ -414,3 +441,5 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
+
+# %%
