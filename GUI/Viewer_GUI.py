@@ -65,7 +65,7 @@ class MyWindow(QMainWindow):
         # 윈도잉 액션
         windowing_action = QAction(
             QIcon('icon/windowing_icon.png'), "Windowing", self)
-        windowing_action.triggered.connect(self.apply_windowing)
+        windowing_action.triggered.connect(self.windowing_input_dialog)
         toolbar.addAction(windowing_action)
 
         toolbar.addSeparator()  # 구분선
