@@ -27,6 +27,7 @@ class MyWindow(QMainWindow):
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
+        self.frame_number = None
         self.file_name = None
         self.label_dict = {"line": [], "rectangle": [],
                            "circle": [], "freehand": []}
@@ -132,13 +133,28 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         label = False
-        file_name = fname[0].split(sep='/')[-1]
+        file_name = fname[0].split(sep='/')[-1].split(sep=".")[0]
         path = os.path.dirname(fname[0])
         try:
-            os.mkdir(path + "/labeling")
+            os.mkdir(path + f"/{file_name}")
         except FileExistsError:
             pass
-        self.fname = path + "/labeling/" + f"{file_name}_labeling.txt"
+
+        if fname[0]:
+            self.ds = dcmread(fname[0])
+            with self.ds:
+                ds = self.ds
+                self.ax = self.canvas.figure.subplots()
+                pixel = ds.pixel_array
+                self.frame_number = 0
+                if len(pixel.shape) == 3:
+                    self.image = ds.pixel_array[0]
+                    self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
+                else:
+                    self.image = ds.pixel_array
+                    self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+
+        self.fname = path + f"/{file_name}/" + f"{self.frame_number}.txt"
         # print(self.fname)
         try:
             with open(self.fname, "r") as f:
@@ -150,46 +166,32 @@ class MyWindow(QMainWindow):
                 label = True
         except FileNotFoundError:
             label = False
-
-        if fname[0]:
-            self.ds = dcmread(fname[0])
-            with self.ds:
-                ds = self.ds
-                self.ax = self.canvas.figure.subplots()
-                pixel = ds.pixel_array
-                if len(pixel.shape) == 3:
-                    self.image = ds.pixel_array[0]
-                    self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
-                else:
-                    self.image = ds.pixel_array
-                    self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
-            if label:
-                if self.label_dict["line"]:
-                    line = self.label_dict["line"]
-                    for coor in line:
-                        self.annotation = self.ax.plot(
-                            (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
-                        self.canvas.draw()
-                if self.label_dict["rectangle"]:
-                    rec = self.label_dict["rectangle"]
-                    for coor in rec:
-                        self.annotation = self.ax.add_patch(
-                            Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
+        if label:
+            if self.label_dict["line"]:
+                line = self.label_dict["line"]
+                for coor in line:
+                    self.annotation = self.ax.plot(
+                        (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
                     self.canvas.draw()
-                if self.label_dict["circle"]:
-                    cir = self.label_dict["circle"]
-                    for coor in cir:
-                        self.annotation = self.ax.add_patch(
-                            Circle(coor[0], coor[1], fill=False, edgecolor='red'))
-                    self.canvas.draw()
+            if self.label_dict["rectangle"]:
+                rec = self.label_dict["rectangle"]
+                for coor in rec:
+                    self.annotation = self.ax.add_patch(
+                        Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
+                self.canvas.draw()
+            if self.label_dict["circle"]:
+                cir = self.label_dict["circle"]
+                for coor in cir:
+                    self.annotation = self.ax.add_patch(
+                        Circle(coor[0], coor[1], fill=False, edgecolor='red'))
+                self.canvas.draw()
 
-                if self.label_dict["freehand"]:
-                    freehand = self.label_dict["freehand"]
-                    for fh in freehand:
-                        x_coords, y_coords = zip(*fh)
-                        self.annotation = self.ax.plot(
-                            x_coords, y_coords, color='red')
-
+            if self.label_dict["freehand"]:
+                freehand = self.label_dict["freehand"]
+                for fh in freehand:
+                    x_coords, y_coords = zip(*fh)
+                    self.annotation = self.ax.plot(
+                        x_coords, y_coords, color='red')
         print("Open File")
         self.canvas.draw()
         plt.show()
