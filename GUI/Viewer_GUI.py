@@ -24,6 +24,7 @@ class MyWindow(QMainWindow):
 
         self.ds = None
         self.main_widget = QWidget()
+        self.cid = None
         self.setCentralWidget(self.main_widget)
 
         self.frame_number = None
@@ -253,6 +254,7 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.plot(x, y, color='red')[0]
                 self.canvas.draw()
                 self.label_dict["line"].append((x[0], y[0], x[1], y[1]))
+                
 
         elif self.annotation_mode == "rectangle":
             if self.start and self.end and self.is_drawing == False:
@@ -278,20 +280,32 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.plot(x, y, color='red')
                 self.canvas.draw()
                 self.label_dict["freehand"].append(self.points)
+        
+    def set_mpl_connect(self, *args):
+        """ button_press_event, motion_notify_event, button_release_event"""
+        cid1 = self.canvas.mpl_connect('button_press_event', args[0])
+        cid2 = self.canvas.mpl_connect('motion_notify_event', args[1])
+        cid3 = self.canvas.mpl_connect('button_release_event', args[2])
+        self.cid = [cid1, cid2, cid3]
 
+    def set_mpl_disconnect(self):
+        if self.cid:
+            c = self.cid
+            self.canvas.mpl_disconnect(c[0])
+            self.canvas.mpl_disconnect(c[1])
+            self.canvas.mpl_disconnect(c[2])
+        
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_line_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_line_mouse_release)
-
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_line_mouse_press, self.on_line_mouse_move, self.on_line_mouse_release)
         self.annotation_mode = "line"
         self.line_start = None
         self.line_end = None
         self.is_drawing = False
 
     def on_line_mouse_press(self, event):
+        print("line")
         if event.button == 1:
             self.is_drawing = True
             self.line_start = (event.xdata, event.ydata)
@@ -308,32 +322,29 @@ class MyWindow(QMainWindow):
             self.draw_annotation()
 
     def draw_circle(self):
-        self.canvas.mpl_connect('button_press_event',
-                                self.on_mouse_circle_press)
-        self.canvas.mpl_connect('motion_notify_event',
-                                self.on_mouse_circle_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_mouse_circle_release)
+
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_circle_mouse_press, self.on_circle_mouse_move, self.on_circle_mouse_release)
 
         self.annotation_mode = "circle"
         self.center = None
         self.radius = None
         self.is_drawing = False
 
-    def on_mouse_circle_press(self, event):
-        # print("cirlce_press")
+    def on_circle_mouse_press(self, event):
+        print("cirlce_press")
         if event.button == 1:
             self.is_drawing = True
             self.center = (event.xdata, event.ydata)
 
-    def on_mouse_circle_move(self, event):
+    def on_circle_mouse_move(self, event):
         if self.is_drawing:
             dx = event.xdata - self.center[0]
             dy = event.ydata - self.center[1]
             self.radius = np.sqrt(dx ** 2 + dy ** 2)
             self.draw_annotation()
 
-    def on_mouse_circle_release(self, event):
+    def on_circle_mouse_release(self, event):
         if event.button == 1:  # Left mouse button
             self.is_drawing = False
             dx = event.xdata - self.center[0]
@@ -343,27 +354,26 @@ class MyWindow(QMainWindow):
 
     def draw_rectangle(self):
         # 사각형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_rec_mouse_press, self.on_rec_mouse_move, self.on_rec_mouse_release)
 
         self.annotation_mode = "rectangle"
         self.start = None
         self.end = None
         self.is_drawing = False
 
-    def on_mouse_press(self, event):
+    def on_rec_mouse_press(self, event):
         print("rec_press")
         if event.button == 1:
             self.is_drawing = True
             self.start = (event.xdata, event.ydata)
 
-    def on_mouse_move(self, event):
+    def on_rec_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
             self.draw_annotation()
 
-    def on_mouse_release(self, event):
+    def on_rec_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
@@ -375,12 +385,8 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event',
-                                self.on_freehand_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event',
-                                self.on_freehand_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_freehand_mouse_release)
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_freehand_mouse_press, self.on_freehand_mouse_move, self.on_freehand_mouse_release)
 
         self.annotation_mode = "freehand"
         self.points = []
@@ -411,11 +417,8 @@ class MyWindow(QMainWindow):
         self.ax.set_xlim(new_xlim)
         self.ax.set_ylim(new_ylim)
 
-        self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_pan_mouse_release)
-
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_pan_mouse_press, self.on_pan_mouse_move, self.on_pan_mouse_release)
         self.canvas.draw()
 
     def on_pan_mouse_press(self, event):  # zoom in 상태에서 화면 이동
