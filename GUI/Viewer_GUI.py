@@ -12,7 +12,7 @@ from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
-from module.Inputdialog_practice import InputDialog
+from module.Windowing_Inputdialog import InputDialog
 
 
 class MyWindow(QMainWindow):
@@ -26,6 +26,7 @@ class MyWindow(QMainWindow):
 
         self.ds = None
         self.main_widget = QWidget()
+        self.cid = None
         self.setCentralWidget(self.main_widget)
 
         self.frame_number = None
@@ -106,6 +107,11 @@ class MyWindow(QMainWindow):
         freehand_action.triggered.connect(self.draw_freehand)
         toolbar.addAction(freehand_action)
 
+        eraser_action = QAction(
+            QIcon('icon/eraser_icon.png'), "Eraser", self)
+        eraser_action.triggered.connect(self.erase)
+        toolbar.addAction(eraser_action)
+
         toolbar.addSeparator()  # 구분선
 
         '''
@@ -129,7 +135,7 @@ class MyWindow(QMainWindow):
         center_x = (screen_geometry.width() - self.width()) // 2
         center_y = (screen_geometry.height() - self.height()) // 2
         self.move(center_x, center_y)
-        
+
     def set_status_bar(self):
         try:
             wl = self.ds.WindowCenter
@@ -152,9 +158,13 @@ class MyWindow(QMainWindow):
 
         if fname[0]:
             self.ds = dcmread(fname[0])
-            with self.ds:
-                ds = self.ds
+            with self.ds as ds:
                 # print(ds)
+                try:
+                    self.ax.clear()
+                    self.canvas.draw()
+                except AttributeError:
+                    pass
                 self.ax = self.canvas.figure.subplots()
                 pixel = ds.pixel_array
                 self.frame_number = 0
@@ -165,6 +175,8 @@ class MyWindow(QMainWindow):
                     self.image = ds.pixel_array
                     self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
             self.set_status_bar()
+        else:
+            pass
 
         self.fname = path + f"/{file_name}/" + f"{self.frame_number}.txt"
         # print(self.fname)
@@ -184,7 +196,7 @@ class MyWindow(QMainWindow):
                 for coor in line:
                     self.annotation = self.ax.plot(
                         (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
-                    self.canvas.draw()
+                self.canvas.draw()
             if self.label_dict["rectangle"]:
                 rec = self.label_dict["rectangle"]
                 for coor in rec:
@@ -219,33 +231,32 @@ class MyWindow(QMainWindow):
         print("Save As...")
 
     def windowing_input_dialog(self):
-        # Windowing 값 받아오는 inputdialog 구현
-        ww, ww_flag = QInputDialog.getText(self, "Change Windowing Value", "Enter the WW: ")
-
-        if ww_flag:
-            wl, wl_flag = QInputDialog.getText(self, "Change Windowing Value", "Enter the WL: ")
-
-            if wl_flag:
+        # Windowing 값 입력하는 dialog
+        windowing_dialog = InputDialog()
+        if windowing_dialog.exec_() == QDialog.Accepted:
+            wl_value, ww_value, ok_flag = windowing_dialog.getText()
+        
+            if ok_flag:
+                wl = wl_value
+                ww = ww_value
                 self.apply_windowing(ww, wl)
-                print(f"WW: {ww}")
-                print(f"WL: {wl}")
- 
+
     def apply_windowing(self, ww, wl):
         # Windowing apply 구현
         self.ds.WindowCenter = wl
         self.ds.WindowWidth = ww
         self.set_status_bar()
-        print(wl, ww)
+        #print(wl, ww)
         modality_lut_image = apply_modality_lut(self.image, self.ds)
         voi_lut_image = apply_voi_lut(modality_lut_image, self.ds)
 
-        comparison = voi_lut_image == self.image
-        mismatch_count = np.count_nonzero(comparison == False)
-        print(voi_lut_image)
-        print(mismatch_count)
+        #comparison = voi_lut_image == self.image
+        #mismatch_count = np.count_nonzero(comparison == False)
+        #print(voi_lut_image)
+        #print(mismatch_count)
 
         self.ax.imshow(voi_lut_image, cmap=plt.cm.gray)
-        self.canvas.draw()     
+        self.canvas.draw()
 
     def draw_annotation(self):
         if self.annotation_mode == "line":
@@ -281,19 +292,32 @@ class MyWindow(QMainWindow):
                 self.canvas.draw()
                 self.label_dict["freehand"].append(self.points)
 
+    def set_mpl_connect(self, *args):
+        """다음순서로 args받아야 합니다. button_press_event, motion_notify_event, button_release_event"""
+        cid1 = self.canvas.mpl_connect('button_press_event', args[0])
+        cid2 = self.canvas.mpl_connect('motion_notify_event', args[1])
+        cid3 = self.canvas.mpl_connect('button_release_event', args[2])
+        self.cid = [cid1, cid2, cid3]
+
+    def set_mpl_disconnect(self):
+        if self.cid:
+            c = self.cid
+            self.canvas.mpl_disconnect(c[0])
+            self.canvas.mpl_disconnect(c[1])
+            self.canvas.mpl_disconnect(c[2])
+
     def draw_straight_line(self):
         # 직선 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_line_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_line_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_line_mouse_release)
-
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_line_mouse_press,
+                             self.on_line_mouse_move, self.on_line_mouse_release)
         self.annotation_mode = "line"
         self.line_start = None
         self.line_end = None
         self.is_drawing = False
 
     def on_line_mouse_press(self, event):
+        print("line")
         if event.button == 1:
             self.is_drawing = True
             self.line_start = (event.xdata, event.ydata)
@@ -310,32 +334,30 @@ class MyWindow(QMainWindow):
             self.draw_annotation()
 
     def draw_circle(self):
-        self.canvas.mpl_connect('button_press_event',
-                                self.on_mouse_circle_press)
-        self.canvas.mpl_connect('motion_notify_event',
-                                self.on_mouse_circle_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_mouse_circle_release)
+
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_circle_mouse_press,
+                             self.on_circle_mouse_move, self.on_circle_mouse_release)
 
         self.annotation_mode = "circle"
         self.center = None
         self.radius = None
         self.is_drawing = False
 
-    def on_mouse_circle_press(self, event):
-        # print("cirlce_press")
+    def on_circle_mouse_press(self, event):
+        print("cirlce_press")
         if event.button == 1:
             self.is_drawing = True
             self.center = (event.xdata, event.ydata)
 
-    def on_mouse_circle_move(self, event):
+    def on_circle_mouse_move(self, event):
         if self.is_drawing:
             dx = event.xdata - self.center[0]
             dy = event.ydata - self.center[1]
             self.radius = np.sqrt(dx ** 2 + dy ** 2)
             self.draw_annotation()
 
-    def on_mouse_circle_release(self, event):
+    def on_circle_mouse_release(self, event):
         if event.button == 1:  # Left mouse button
             self.is_drawing = False
             dx = event.xdata - self.center[0]
@@ -345,27 +367,27 @@ class MyWindow(QMainWindow):
 
     def draw_rectangle(self):
         # 사각형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_rec_mouse_press,
+                             self.on_rec_mouse_move, self.on_rec_mouse_release)
 
         self.annotation_mode = "rectangle"
         self.start = None
         self.end = None
         self.is_drawing = False
 
-    def on_mouse_press(self, event):
+    def on_rec_mouse_press(self, event):
         print("rec_press")
         if event.button == 1:
             self.is_drawing = True
             self.start = (event.xdata, event.ydata)
 
-    def on_mouse_move(self, event):
+    def on_rec_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
             self.draw_annotation()
 
-    def on_mouse_release(self, event):
+    def on_rec_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
@@ -377,12 +399,9 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
-        self.canvas.mpl_connect('button_press_event',
-                                self.on_freehand_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event',
-                                self.on_freehand_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_freehand_mouse_release)
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_freehand_mouse_press,
+                             self.on_freehand_mouse_move, self.on_freehand_mouse_release)
 
         self.annotation_mode = "freehand"
         self.points = []
@@ -403,6 +422,28 @@ class MyWindow(QMainWindow):
             self.is_drawing = False
             self.draw_annotation()
 
+    def erase(self):
+        print("erase")
+        reply = QMessageBox.question(self, 'Message', 'Do you erase all?',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.erase_annotation()
+
+    def erase_annotation(self):
+        # print(self.ax)
+        # print(dir(self.ax))
+        try:
+            for patch in self.ax.patches:
+                patch.remove()
+            for patch in self.ax.lines:
+                patch.remove()
+            self.canvas.draw()
+            for key in self.label_dict:
+                self.label_dict[key] = []
+        except AttributeError:
+            pass
+
     def zoom_in(self):
         current_xlim = self.ax.get_xlim()
         current_ylim = self.ax.get_ylim()
@@ -413,11 +454,9 @@ class MyWindow(QMainWindow):
         self.ax.set_xlim(new_xlim)
         self.ax.set_ylim(new_ylim)
 
-        self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
-        self.canvas.mpl_connect('button_release_event',
-                                self.on_pan_mouse_release)
-
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_pan_mouse_press,
+                             self.on_pan_mouse_move, self.on_pan_mouse_release)
         self.canvas.draw()
 
     def on_pan_mouse_press(self, event):  # zoom in 상태에서 화면 이동
