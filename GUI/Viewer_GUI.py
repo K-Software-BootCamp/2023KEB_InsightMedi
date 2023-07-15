@@ -12,6 +12,8 @@ from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
+from module.Inputdialog_practice import InputDialog
+
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -217,7 +219,7 @@ class MyWindow(QMainWindow):
         print("Save As...")
 
     def windowing_input_dialog(self):
-        # Windowing 적용 기능 구현
+        # Windowing 값 받아오는 inputdialog 구현
         ww, ww_flag = QInputDialog.getText(self, "Change Windowing Value", "Enter the WW: ")
 
         if ww_flag:
@@ -225,11 +227,11 @@ class MyWindow(QMainWindow):
 
             if wl_flag:
                 self.apply_windowing(ww, wl)
-                #print(f"WW: {ww}")
-                #print(f"WL: {wl}")            
-        print("Apply Windowing")
-
+                print(f"WW: {ww}")
+                print(f"WL: {wl}")
+ 
     def apply_windowing(self, ww, wl):
+        # Windowing apply 구현
         self.ds.WindowCenter = wl
         self.ds.WindowWidth = ww
         self.set_status_bar()
