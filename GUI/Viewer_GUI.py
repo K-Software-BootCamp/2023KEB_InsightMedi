@@ -192,14 +192,25 @@ class MyWindow(QMainWindow):
                 self.set_status_bar()
 
             elif file_extension == "mp4":    #mp4 파일인 경우
-                self.frame_number = 0
+                self.frame_number = 1
                 self.video_player = cv2.VideoCapture()
                 self.timer = QTimer()
                 self.video_player.open(fname[0])
                 self.ax = self.canvas.figure.subplots()
+                
+                ret, frame = self.video_player.read()
+                if ret:
+                    first_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    self.ax.imshow(first_frame)
+                
                 self.total_frame = int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT))
                 print(self.total_frame)
+                
                 self.slider.setMaximum(int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
+                # 눈금 설정
+                self.slider.setTickPosition(QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
+                self.slider.setTickInterval(10)  # 눈금 간격 설정
+
                 self.slider.valueChanged.connect(self.sliderValueChanged)
                 self.play_button.clicked.connect(self.playButtonClicked)
 
@@ -275,9 +286,13 @@ class MyWindow(QMainWindow):
     def playButtonClicked(self):
         if not self.timer.isActive():
             self.play_button.setText("Pause")
+            self.timer.timeout.connect(self.updateFrame)
             self.timer.start(33)
         else:
             self.play_button.setText("Play")
+            self.timer.timeout.disconnect(self.updateFrame)
+            self.frame_number = int(self.video_player.get(cv2.CAP_PROP_POS_FRAMES))
+            self.slider.setValue(self.frame_number)
             self.timer.stop()
 
     def updateFrame(self):
@@ -287,13 +302,7 @@ class MyWindow(QMainWindow):
             self.ax.clear()
             self.ax.imshow(frame_rgb)
             self.canvas.draw()
-            """ height, width, channel = frame_rgb.shape
-            bytes_per_line = 3 * width
-            q_image = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
-            pixmap = QPixmap.fromImage(q_image)
-            scaled_pixmap = pixmap.scaled(self.video_frame.size(), Qt.KeepAspectRatio)
-            self.video_frame.setPixmap(scaled_pixmap) """
-
+            
     def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
         windowing_dialog = InputDialog()
