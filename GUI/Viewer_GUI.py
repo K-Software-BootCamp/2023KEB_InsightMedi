@@ -14,9 +14,10 @@ from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
+from functools import partial
 from data.dcm_data import DcmData
 from module.Windowing_Inputdialog import InputDialog
-from module.Label_List import LabelList
+
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -34,17 +35,19 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
-        self.label_list = LabelList()
+        self.label_list = QWidget()
+        self.label_layout = QVBoxLayout()
+        self.label_list.setLayout(self.label_layout)
+        self.buttons = {}
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
-        
+
         # Layout
         grid_box = QGridLayout(self.main_widget)
         grid_box.addWidget(self.canvas, 0, 0)
         grid_box.addWidget(self.label_list, 0, 1)
         grid_box.addWidget(self.slider, 1, 0)
         grid_box.addWidget(self.play_button, 2, 0)
-
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
@@ -157,25 +160,29 @@ class MyWindow(QMainWindow):
         # 파일 열기 기능 구현
         self.canvas.figure.clear()
         options = QFileDialog.Options()
-        fname = QFileDialog.getOpenFileName(self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
+        fname = QFileDialog.getOpenFileName(
+            self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
         if fname[0]:
             dd = self.dd
             dd.open_file(fname)
+            self.delete_label()
+            self.open_label(dd.frame_label_dict)
             self.ax = self.canvas.figure.subplots()
-            if dd.file_extension == "DCM" or dd.file_extension == "dcm":   #dcm 파일인 경우
+            if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
                 self.ax.imshow(dd.image, cmap=plt.cm.gray)
                 self.canvas.draw()
 
-            elif dd.file_extension == "mp4":    #mp4 파일인 경우
+            elif dd.file_extension == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
                 self.ax.imshow(dd.image)
                 self.canvas.draw()
-                
+
                 print(dd.total_frame)
                 self.slider.setMaximum(dd.total_frame - 1)
 
                 # 눈금 설정
-                self.slider.setTickPosition(QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
+                self.slider.setTickPosition(
+                    QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
                 self.slider.setTickInterval(10)  # 눈금 간격 설정
 
                 self.slider.valueChanged.connect(self.sliderValueChanged)
@@ -183,7 +190,7 @@ class MyWindow(QMainWindow):
 
                 # timer start
                 if not self.timer:
-                    self.timer = self.canvas.new_timer(interval = 33)    #30FPS
+                    self.timer = self.canvas.new_timer(interval=33)  # 30FPS
                     self.timer.add_callback(self.updateFrame)
                     self.timer.start()
             else:    # viewer에 호환되지 않는 확장자 파일
@@ -192,46 +199,60 @@ class MyWindow(QMainWindow):
         else:
             pass
 
-    def drawing_label(self, label):
-        label_dict = self.dd.label_dict
-        print("label : ", label)
-        if label:
-            if label_dict["line"]:
-                line = label_dict["line"]
-                for coor in line:
-                    self.annotation = self.ax.plot(
-                        (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
-                self.canvas.draw()
-            if label_dict["rectangle"]:
-                rec = label_dict["rectangle"]
-                for coor in rec:
-                    self.annotation = self.ax.add_patch(
-                        Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
-                self.canvas.draw()
-            if label_dict["circle"]:
-                cir = label_dict["circle"]
-                for coor in cir:
-                    self.annotation = self.ax.add_patch(
-                        Circle(coor[0], coor[1], fill=False, edgecolor='red'))
-                self.canvas.draw()
+    def open_label(self, ld):
+        for frame in ld:
+            # label = QLabel(label_text)
+            button = QPushButton(f"{frame} frame", self)
+            self.buttons[frame] = button
+            button.clicked.connect(partial(self.label_clicked, frame))
+            # self.layout.addWidget(label)
+            self.label_layout.addWidget(button)
 
-            if label_dict["freehand"]:
-                freehand = label_dict["freehand"]
-                for fh in freehand:
-                    x_coords, y_coords = zip(*fh)
-                    self.annotation = self.ax.plot(
-                        x_coords, y_coords, color='red')
+    def delete_label(self):
+        while self.label_layout.count():
+            item = self.label_layout.takeAt(0)  
+            widget = item.widget()  
+            if widget:
+                widget.deleteLater()
+
+    def label_clicked(self, frame):
+        ld = self.dd.frame_label_dict[frame]
+        if ld["line"]:
+            line = ld["line"]
+            for coor in line:
+                self.ax.plot(
+                    (coor[0], coor[2]), (coor[1], coor[3]), color='red')
+            self.canvas.draw()
+        if ld["rectangle"]:
+            rec = ld["rectangle"]
+            for coor in rec:
+                self.ax.add_patch(
+                    Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
+            self.canvas.draw()
+        if ld["circle"]:
+            cir = ld["circle"]
+            for coor in cir:
+                self.ax.add_patch(
+                    Circle(coor[0], coor[1], fill=False, edgecolor='red'))
+            self.canvas.draw()
+
+        if ld["freehand"]:
+            freehand = ld["freehand"]
+            for fh in freehand:
+                x_coords, y_coords = zip(*fh)
+                self.ax.plot(
+                    x_coords, y_coords, color='red')
 
     def save(self):
         # 저장 기능 구현
         self.dd.save_label()
-        
+
         print("Save...")
 
     def save_as(self):
         # 다른 이름으로 저장 기능 구현
         print("Save As...")
-    
+
     def sliderValueChanged(self, value):
         self.dd.frame_number = value
         self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
@@ -245,7 +266,8 @@ class MyWindow(QMainWindow):
         else:
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
-            self.dd.frame_number = int(self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES))
+            self.dd.frame_number = int(
+                self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES))
             self.slider.setValue(self.dd.frame_number)
             self.timer.stop()
 
@@ -256,13 +278,13 @@ class MyWindow(QMainWindow):
             self.ax.clear()
             self.ax.imshow(frame_rgb)
             self.canvas.draw()
-            
+
     def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
         windowing_dialog = InputDialog()
         if windowing_dialog.exec_() == QDialog.Accepted:
             wl_value, ww_value, ok_flag = windowing_dialog.getText()
-        
+
             if ok_flag:
                 wl = wl_value
                 ww = ww_value
@@ -270,18 +292,18 @@ class MyWindow(QMainWindow):
 
     def apply_windowing(self, ww, wl):
         # Windowing apply 구현
-        dd = self.dd 
+        dd = self.dd
         dd.ds.WindowCenter = wl
         dd.ds.WindowWidth = ww
         self.set_status_bar()
-        #print(wl, ww)
+        # print(wl, ww)
         modality_lut_image = apply_modality_lut(dd.image, dd.ds)
         voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
 
-        #comparison = voi_lut_image == self.image
-        #mismatch_count = np.count_nonzero(comparison == False)
-        #print(voi_lut_image)
-        #print(mismatch_count)
+        # comparison = voi_lut_image == self.image
+        # mismatch_count = np.count_nonzero(comparison == False)
+        # print(voi_lut_image)
+        # print(mismatch_count)
 
         self.ax.imshow(voi_lut_image, cmap=plt.cm.gray)
         self.canvas.draw()
@@ -291,7 +313,7 @@ class MyWindow(QMainWindow):
             if self.line_start and self.line_end and self.is_drawing == False:
                 x = [self.line_start[0], self.line_end[0]]
                 y = [self.line_start[1], self.line_end[1]]
-                self.annotation = self.ax.plot(x, y, color='red')[0]
+                self.ax.plot(x, y, color='red')[0]
                 self.canvas.draw()
                 self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
 
@@ -301,14 +323,14 @@ class MyWindow(QMainWindow):
                 height = abs(self.start[1] - self.end[1])
                 x = min(self.start[0], self.end[0])
                 y = min(self.start[1], self.end[1])
-                self.annotation = self.ax.add_patch(
+                self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, edgecolor='red'))
                 self.canvas.draw()
                 self.dd.add_label("rectangle", (x, y, width, height))
 
         elif self.annotation_mode == "circle":
             if self.center and self.radius and self.is_drawing == False:
-                self.annotation = self.ax.add_patch(
+                self.ax.add_patch(
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
                 self.dd.add_label("circle", (self.center, self.radius))
@@ -316,7 +338,7 @@ class MyWindow(QMainWindow):
         elif self.annotation_mode == "freehand":
             if self.is_drawing == False and len(self.points) > 1:
                 x, y = zip(*self.points)
-                self.annotation = self.ax.plot(x, y, color='red')
+                self.ax.plot(x, y, color='red')
                 self.canvas.draw()
                 self.dd.add_label("freehand", self.points)
 
@@ -467,8 +489,8 @@ class MyWindow(QMainWindow):
             for patch in self.ax.lines:
                 patch.remove()
             self.canvas.draw()
-            for key in self.dd.label_dict:
-                self.dd.label_dict[key] = []
+            for key in self.dd.frame_label_dict:
+                self.dd.frame_label_dict[key] = self.dd.label_dict_schema.copy()
         except AttributeError:
             pass
 
