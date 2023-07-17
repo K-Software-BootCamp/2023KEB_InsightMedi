@@ -15,7 +15,7 @@ class DcmData():
         self.frame_label_dict = {}
         self.label_dict_schema = {"line": [], "rectangle": [],
                            "circle": [], "freehand": []}
-
+        
         self.ds = None
         self.pixel = None
         self.image = None
@@ -31,10 +31,13 @@ class DcmData():
             os.mkdir(self.label_dir)
         except FileExistsError:
             pass
-
-        self.open_dcm_file(fname)
-        self.load_label_dict()
-
+        
+        if self.file_extension == "DCM" or self.file_extension == "dcm":
+            self.open_dcm_file(fname)
+            self.load_label_dict()
+        elif self.file_extension == "mp4":
+            self.open_mp4_file(fname)
+    
     def load_label_dict(self, custom_range=None):
         for file_name in sorted(os.listdir(self.label_dir)):
             print(file_name)
@@ -71,5 +74,13 @@ class DcmData():
             self.image = self.pixel[0]
         else:
             self.image = self.pixel
-            # ax.imshow(pixel, cmap=plt.cm.gray)
 
+    def open_mp4_file(self, fname):
+        self.frame_number = 0
+        self.video_player = cv2.VideoCapture()
+        self.video_player.open(fname[0])
+        self.total_frame = int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        ret, frame = self.video_player.read()
+        if ret:
+            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
