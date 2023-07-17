@@ -224,10 +224,8 @@ class MyWindow(QMainWindow):
 
     def save(self):
         # 저장 기능 구현
-        d = self.dd
-        for key in d.frame_label_dict:
-            with open(f"{d.label_dir}/{key}.txt", 'w') as f:
-                f.write(json.dumps(d.frame_label_dict[key]))
+        self.dd.save_label()
+        
         print("Save...")
 
     def save_as(self):
@@ -295,7 +293,7 @@ class MyWindow(QMainWindow):
                 y = [self.line_start[1], self.line_end[1]]
                 self.annotation = self.ax.plot(x, y, color='red')[0]
                 self.canvas.draw()
-                self.dd.label_dict["line"].append((x[0], y[0], x[1], y[1]))
+                self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
 
         elif self.annotation_mode == "rectangle":
             if self.start and self.end and self.is_drawing == False:
@@ -306,21 +304,21 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, edgecolor='red'))
                 self.canvas.draw()
-                self.dd.label_dict["rectangle"].append((x, y, width, height))
+                self.dd.add_label("rectangle", (x, y, width, height))
 
         elif self.annotation_mode == "circle":
             if self.center and self.radius and self.is_drawing == False:
                 self.annotation = self.ax.add_patch(
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
-                self.dd.label_dict["circle"].append((self.center, self.radius))
+                self.dd.add_label("circle", (self.center, self.radius))
 
         elif self.annotation_mode == "freehand":
             if self.is_drawing == False and len(self.points) > 1:
                 x, y = zip(*self.points)
                 self.annotation = self.ax.plot(x, y, color='red')
                 self.canvas.draw()
-                self.dd.label_dict["freehand"].append(self.points)
+                self.dd.add_label("freehand", self.points)
 
     def set_mpl_connect(self, *args):
         """다음순서로 args받아야 합니다. button_press_event, motion_notify_event, button_release_event"""
