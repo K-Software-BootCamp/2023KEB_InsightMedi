@@ -148,12 +148,14 @@ class MyWindow(QMainWindow):
         self.move(center_x, center_y)
 
     def set_status_bar(self):
+        # print(self.dd.ds)
         try:
             wl = self.dd.ds.WindowCenter
             ww = self.dd.ds.WindowWidth
             # print(wl, ww)
             self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
         except AttributeError:
+            self.statusBar().showMessage("")
             pass
 
     def open_file(self):
@@ -165,6 +167,7 @@ class MyWindow(QMainWindow):
         if fname[0]:
             dd = self.dd
             dd.open_file(fname)
+            self.set_status_bar()
             self.delete_label()
             self.open_label(dd.frame_label_dict)
             self.ax = self.canvas.figure.subplots()
