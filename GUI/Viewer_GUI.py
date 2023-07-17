@@ -35,13 +35,14 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.label_list = LabelList()
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
         
         # Layout
         grid_box = QGridLayout(self.main_widget)
-        grid_box.addWidget(LabelList(), 0, 1)
         grid_box.addWidget(self.canvas, 0, 0)
+        grid_box.addWidget(self.label_list, 0, 1)
         grid_box.addWidget(self.slider, 1, 0)
         grid_box.addWidget(self.play_button, 2, 0)
 
@@ -189,7 +190,6 @@ class MyWindow(QMainWindow):
 
     def drawing_label(self, label):
         label_dict = self.dd.label_dict
-        self.ax = self.canvas.figure.subplots()
         print("label : ", label)
         if label:
             if label_dict["line"]:

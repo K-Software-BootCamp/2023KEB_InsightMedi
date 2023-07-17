@@ -73,19 +73,3 @@ class DcmData():
             self.image = self.pixel
             # ax.imshow(pixel, cmap=plt.cm.gray)
 
-    def open_mp4_file(self, fname, canvas, ax):
-        self.video_player = cv2.VideoCapture()
-        self.video_player.open(fname[0])
-        self.total_frame = int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT))
-        # self.timer = QTimer()
-        print(self.total_frame)
-        self.slider.setMaximum(
-            int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
-        self.slider.valueChanged.connect(self.sliderValueChanged)
-        self.play_button.clicked.connect(self.playButtonClicked)
-
-        # timer start
-        if not self.timer:
-            self.timer = self.canvas.new_timer(interval=33)  # 30FPS
-            self.timer.add_callback(self.updateFrame)
-            self.timer.start()
