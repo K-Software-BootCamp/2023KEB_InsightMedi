@@ -14,39 +14,35 @@ from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 
+from data.dcm_data import DcmData
 from module.Windowing_Inputdialog import InputDialog
-
+from module.Label_List import LabelList
 
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.timer = None
-        self.video_player = cv2.VideoCapture()
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
         # self.setFixedSize(700, 700)
 
-        self.ds = None
         self.main_widget = QWidget()
         self.cid = None
+        self.dd = DcmData()
         self.setCentralWidget(self.main_widget)
-
-        self.frame_number = None
-        self.file_name = None
-        self.label_dict = {"line": [], "rectangle": [],
-                           "circle": [], "freehand": []}
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
         
         # Layout
-        vbox = QVBoxLayout(self.main_widget)
-        vbox.addWidget(self.canvas)
-        vbox.addWidget(self.slider)
-        vbox.addWidget(self.play_button)
+        grid_box = QGridLayout(self.main_widget)
+        grid_box.addWidget(LabelList(), 0, 1)
+        grid_box.addWidget(self.canvas, 0, 0)
+        grid_box.addWidget(self.slider, 1, 0)
+        grid_box.addWidget(self.play_button, 2, 0)
 
 
         # Create a toolbar
@@ -149,8 +145,8 @@ class MyWindow(QMainWindow):
 
     def set_status_bar(self):
         try:
-            wl = self.ds.WindowCenter
-            ww = self.ds.WindowWidth
+            wl = self.dd.ds.WindowCenter
+            ww = self.dd.ds.WindowWidth
             # print(wl, ww)
             self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
         except AttributeError:
@@ -158,55 +154,25 @@ class MyWindow(QMainWindow):
 
     def open_file(self):
         # 파일 열기 기능 구현
+        self.canvas.figure.clear()
         options = QFileDialog.Options()
         fname = QFileDialog.getOpenFileName(self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
-        label = False
-        file_extension = fname[0].split('/')[-1].split(".")[-1]
-        file_name = fname[0].split(sep='/')[-1].split(sep=".")[0]
-        path = os.path.dirname(fname[0])
-
-        try:
-            os.mkdir(path + f"/{file_name}")
-        except FileExistsError:
-            pass
-
         if fname[0]:
-            if file_extension == "DCM" or file_extension == "dcm":   #dcm 파일인 경우
-                self.ds = dcmread(fname[0])
-                with self.ds as ds:
-                    # print(ds)
-                    try:
-                        self.ax.clear()
-                        self.canvas.draw()
-                    except AttributeError:
-                        pass
-                    self.ax = self.canvas.figure.subplots()
-                    pixel = ds.pixel_array
-                    self.frame_number = 0
-                    if len(pixel.shape) == 3:
-                        self.image = ds.pixel_array[0]
-                        self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
-                    else:
-                        self.image = ds.pixel_array
-                        self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
-                self.set_status_bar()
+            dd = self.dd
+            dd.open_file(fname)
+            self.ax = self.canvas.figure.subplots()
+            if dd.file_extension == "DCM" or dd.file_extension == "dcm":   #dcm 파일인 경우
+                self.ax.imshow(dd.image, cmap=plt.cm.gray)
+                self.canvas.draw()
 
-            elif file_extension == "mp4":    #mp4 파일인 경우
-                self.frame_number = 1
-                self.video_player = cv2.VideoCapture()
+            elif dd.file_extension == "mp4":    #mp4 파일인 경우
                 self.timer = QTimer()
-                self.video_player.open(fname[0])
-                self.ax = self.canvas.figure.subplots()
+                self.ax.imshow(dd.image)
+                self.canvas.draw()
                 
-                ret, frame = self.video_player.read()
-                if ret:
-                    first_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    self.ax.imshow(first_frame)
-                
-                self.total_frame = int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT))
-                print(self.total_frame)
-                
-                self.slider.setMaximum(int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
+                print(dd.total_frame)
+                self.slider.setMaximum(dd.total_frame - 1)
+
                 # 눈금 설정
                 self.slider.setTickPosition(QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
                 self.slider.setTickInterval(10)  # 눈금 간격 설정
@@ -219,59 +185,49 @@ class MyWindow(QMainWindow):
                     self.timer = self.canvas.new_timer(interval = 33)    #30FPS
                     self.timer.add_callback(self.updateFrame)
                     self.timer.start()
-            
             else:    # viewer에 호환되지 않는 확장자 파일
-
                 pass
+            self.set_status_bar()
         else:
             pass
 
-        self.fname = path + f"/{file_name}/" + f"{self.frame_number}.txt"
-        # print(self.fname)
-        try:
-            with open(self.fname, "r") as f:
-                t = json.load(f)
-                self.label_dict["line"] = t["line"]
-                self.label_dict["rectangle"] = t["rectangle"]
-                self.label_dict["circle"] = t["circle"]
-                self.label_dict["freehand"] = t["freehand"]
-                label = True
-        except FileNotFoundError:
-            label = False
+    def drawing_label(self, label):
+        label_dict = self.dd.label_dict
+        self.ax = self.canvas.figure.subplots()
+        print("label : ", label)
         if label:
-            if self.label_dict["line"]:
-                line = self.label_dict["line"]
+            if label_dict["line"]:
+                line = label_dict["line"]
                 for coor in line:
                     self.annotation = self.ax.plot(
                         (coor[0], coor[2]), (coor[1], coor[3]), color='red')[0]
                 self.canvas.draw()
-            if self.label_dict["rectangle"]:
-                rec = self.label_dict["rectangle"]
+            if label_dict["rectangle"]:
+                rec = label_dict["rectangle"]
                 for coor in rec:
                     self.annotation = self.ax.add_patch(
                         Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
                 self.canvas.draw()
-            if self.label_dict["circle"]:
-                cir = self.label_dict["circle"]
+            if label_dict["circle"]:
+                cir = label_dict["circle"]
                 for coor in cir:
                     self.annotation = self.ax.add_patch(
                         Circle(coor[0], coor[1], fill=False, edgecolor='red'))
                 self.canvas.draw()
 
-            if self.label_dict["freehand"]:
-                freehand = self.label_dict["freehand"]
+            if label_dict["freehand"]:
+                freehand = label_dict["freehand"]
                 for fh in freehand:
                     x_coords, y_coords = zip(*fh)
                     self.annotation = self.ax.plot(
                         x_coords, y_coords, color='red')
-        print("Open File")
-        self.canvas.draw()
-        plt.show()
 
     def save(self):
         # 저장 기능 구현
-        with open(f"{self.fname}", 'w') as f:
-            f.write(json.dumps(self.label_dict))
+        d = self.dd
+        for key in d.frame_label_dict:
+            with open(f"{d.label_dir}/{key}.txt", 'w') as f:
+                f.write(json.dumps(d.frame_label_dict[key]))
         print("Save...")
 
     def save_as(self):
@@ -279,8 +235,8 @@ class MyWindow(QMainWindow):
         print("Save As...")
     
     def sliderValueChanged(self, value):
-        self.frame_number = value
-        self.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number)
+        self.dd.frame_number = value
+        self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
         self.updateFrame()
 
     def playButtonClicked(self):
@@ -291,12 +247,12 @@ class MyWindow(QMainWindow):
         else:
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
-            self.frame_number = int(self.video_player.get(cv2.CAP_PROP_POS_FRAMES))
-            self.slider.setValue(self.frame_number)
+            self.dd.frame_number = int(self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES))
+            self.slider.setValue(self.dd.frame_number)
             self.timer.stop()
 
     def updateFrame(self):
-        ret, frame = self.video_player.read()
+        ret, frame = self.dd.video_player.read()
         if ret:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.ax.clear()
@@ -316,12 +272,13 @@ class MyWindow(QMainWindow):
 
     def apply_windowing(self, ww, wl):
         # Windowing apply 구현
-        self.ds.WindowCenter = wl
-        self.ds.WindowWidth = ww
+        dd = self.dd 
+        dd.ds.WindowCenter = wl
+        dd.ds.WindowWidth = ww
         self.set_status_bar()
         #print(wl, ww)
-        modality_lut_image = apply_modality_lut(self.image, self.ds)
-        voi_lut_image = apply_voi_lut(modality_lut_image, self.ds)
+        modality_lut_image = apply_modality_lut(dd.image, dd.ds)
+        voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
 
         #comparison = voi_lut_image == self.image
         #mismatch_count = np.count_nonzero(comparison == False)
@@ -338,7 +295,7 @@ class MyWindow(QMainWindow):
                 y = [self.line_start[1], self.line_end[1]]
                 self.annotation = self.ax.plot(x, y, color='red')[0]
                 self.canvas.draw()
-                self.label_dict["line"].append((x[0], y[0], x[1], y[1]))
+                self.dd.label_dict["line"].append((x[0], y[0], x[1], y[1]))
 
         elif self.annotation_mode == "rectangle":
             if self.start and self.end and self.is_drawing == False:
@@ -349,21 +306,21 @@ class MyWindow(QMainWindow):
                 self.annotation = self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, edgecolor='red'))
                 self.canvas.draw()
-                self.label_dict["rectangle"].append((x, y, width, height))
+                self.dd.label_dict["rectangle"].append((x, y, width, height))
 
         elif self.annotation_mode == "circle":
             if self.center and self.radius and self.is_drawing == False:
                 self.annotation = self.ax.add_patch(
                     Circle(self.center, self.radius, fill=False, edgecolor='red'))
                 self.canvas.draw()
-                self.label_dict["circle"].append((self.center, self.radius))
+                self.dd.label_dict["circle"].append((self.center, self.radius))
 
         elif self.annotation_mode == "freehand":
             if self.is_drawing == False and len(self.points) > 1:
                 x, y = zip(*self.points)
                 self.annotation = self.ax.plot(x, y, color='red')
                 self.canvas.draw()
-                self.label_dict["freehand"].append(self.points)
+                self.dd.label_dict["freehand"].append(self.points)
 
     def set_mpl_connect(self, *args):
         """다음순서로 args받아야 합니다. button_press_event, motion_notify_event, button_release_event"""
@@ -512,8 +469,8 @@ class MyWindow(QMainWindow):
             for patch in self.ax.lines:
                 patch.remove()
             self.canvas.draw()
-            for key in self.label_dict:
-                self.label_dict[key] = []
+            for key in self.dd.label_dict:
+                self.dd.label_dict[key] = []
         except AttributeError:
             pass
 
