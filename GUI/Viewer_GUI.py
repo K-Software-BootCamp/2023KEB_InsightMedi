@@ -1,7 +1,9 @@
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import Qt, QTimer
 import json
+import cv2
 import numpy as np
 import os
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
@@ -18,6 +20,8 @@ from module.Windowing_Inputdialog import InputDialog
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.timer = None
+        self.video_player = cv2.VideoCapture()
         self.initUI()
 
     def initUI(self):
@@ -35,8 +39,15 @@ class MyWindow(QMainWindow):
                            "circle": [], "freehand": []}
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.slider = QSlider(Qt.Horizontal)
+        self.play_button = QPushButton("Play")
+        
+        # Layout
         vbox = QVBoxLayout(self.main_widget)
         vbox.addWidget(self.canvas)
+        vbox.addWidget(self.slider)
+        vbox.addWidget(self.play_button)
+
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
@@ -147,34 +158,60 @@ class MyWindow(QMainWindow):
 
     def open_file(self):
         # 파일 열기 기능 구현
-        fname = QFileDialog.getOpenFileName(self, 'Open file', './')
+        options = QFileDialog.Options()
+        fname = QFileDialog.getOpenFileName(self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
         label = False
+        file_extension = fname[0].split('/')[-1].split(".")[-1]
         file_name = fname[0].split(sep='/')[-1].split(sep=".")[0]
         path = os.path.dirname(fname[0])
+
         try:
             os.mkdir(path + f"/{file_name}")
         except FileExistsError:
             pass
 
         if fname[0]:
-            self.ds = dcmread(fname[0])
-            with self.ds as ds:
-                # print(ds)
-                try:
-                    self.ax.clear()
-                    self.canvas.draw()
-                except AttributeError:
-                    pass
-                self.ax = self.canvas.figure.subplots()
-                pixel = ds.pixel_array
+            if file_extension == "DCM" or file_extension == "dcm":   #dcm 파일인 경우
+                self.ds = dcmread(fname[0])
+                with self.ds as ds:
+                    # print(ds)
+                    try:
+                        self.ax.clear()
+                        self.canvas.draw()
+                    except AttributeError:
+                        pass
+                    self.ax = self.canvas.figure.subplots()
+                    pixel = ds.pixel_array
+                    self.frame_number = 0
+                    if len(pixel.shape) == 3:
+                        self.image = ds.pixel_array[0]
+                        self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
+                    else:
+                        self.image = ds.pixel_array
+                        self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
+                self.set_status_bar()
+
+            elif file_extension == "mp4":    #mp4 파일인 경우
                 self.frame_number = 0
-                if len(pixel.shape) == 3:
-                    self.image = ds.pixel_array[0]
-                    self.ax.imshow(ds.pixel_array[0], cmap=plt.cm.gray)
-                else:
-                    self.image = ds.pixel_array
-                    self.ax.imshow(ds.pixel_array, cmap=plt.cm.gray)
-            self.set_status_bar()
+                self.video_player = cv2.VideoCapture()
+                self.timer = QTimer()
+                self.video_player.open(fname[0])
+                self.ax = self.canvas.figure.subplots()
+                self.total_frame = int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT))
+                print(self.total_frame)
+                self.slider.setMaximum(int(self.video_player.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
+                self.slider.valueChanged.connect(self.sliderValueChanged)
+                self.play_button.clicked.connect(self.playButtonClicked)
+
+                # timer start
+                if not self.timer:
+                    self.timer = self.canvas.new_timer(interval = 33)    #30FPS
+                    self.timer.add_callback(self.updateFrame)
+                    self.timer.start()
+            
+            else:    # viewer에 호환되지 않는 확장자 파일
+
+                pass
         else:
             pass
 
@@ -229,9 +266,36 @@ class MyWindow(QMainWindow):
     def save_as(self):
         # 다른 이름으로 저장 기능 구현
         print("Save As...")
+    
+    def sliderValueChanged(self, value):
+        self.frame_number = value
+        self.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number)
+        self.updateFrame()
+
+    def playButtonClicked(self):
+        if not self.timer.isActive():
+            self.play_button.setText("Pause")
+            self.timer.start(33)
+        else:
+            self.play_button.setText("Play")
+            self.timer.stop()
+
+    def updateFrame(self):
+        ret, frame = self.video_player.read()
+        if ret:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.ax.clear()
+            self.ax.imshow(frame_rgb)
+            self.canvas.draw()
+            """ height, width, channel = frame_rgb.shape
+            bytes_per_line = 3 * width
+            q_image = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(q_image)
+            scaled_pixmap = pixmap.scaled(self.video_frame.size(), Qt.KeepAspectRatio)
+            self.video_frame.setPixmap(scaled_pixmap) """
 
     def windowing_input_dialog(self):
-        # Windowing 값 입력하는 dialog
+        # Windowing 값 입력하는 input dialog
         windowing_dialog = InputDialog()
         if windowing_dialog.exec_() == QDialog.Accepted:
             wl_value, ww_value, ok_flag = windowing_dialog.getText()
