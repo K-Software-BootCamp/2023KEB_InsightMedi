@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import cv2
 import json
+import copy
 
 
 class DcmData():
@@ -28,7 +29,7 @@ class DcmData():
         self.file_dir = os.path.dirname(fname[0])
         self.label_dir = self.file_dir + f"/{self.file_name}"
         self.frame_label_dict.clear()
-        
+
         try:
             os.mkdir(self.label_dir)
         except FileExistsError:
@@ -41,7 +42,7 @@ class DcmData():
             self.open_mp4_file(fname)
             self.load_label_dict()
     
-    def load_label_dict(self, custom_range=None):
+    def load_label_dict(self, custom_range=None):    # text 파일로부터 label dictionary를 불러옴
         for file_name in sorted(os.listdir(self.label_dir)):
             print(file_name)
             frame_number = int(file_name.split(".")[0])
@@ -62,14 +63,20 @@ class DcmData():
             with open(f"{self.label_dir}/{key}.txt", 'w') as f:
                 f.write(json.dumps(self.frame_label_dict[key]))
     
-    def add_label(self, key, value):
+    def add_label(self, key, value):    #key: label_type / value: 좌표
+        #print("전체 frame별 label dictionary", self.frame_label_dict)
         try:
-            ld =  self.frame_label_dict[self.frame_number]
+            ld = self.frame_label_dict[self.frame_number]
         except KeyError:
-            self.frame_label_dict[self.frame_number]  = self.label_dict_schema.copy()
+            new_label_dict_schema = copy.deepcopy(self.label_dict_schema)
+            self.frame_label_dict[self.frame_number] = new_label_dict_schema
             ld =  self.frame_label_dict[self.frame_number]
-        ld[key].append(value)
+            print("새로운 frame에 label을 그렸을 때 text파일에 들어갈 정보 틀 생성")
 
+        ld[key].append(value)
+        print("확인",ld)
+        print("현재 framenumber", self.frame_number)
+        
     def open_dcm_file(self, fname):
         self.ds = dcmread(fname[0])
         self.pixel = self.ds.pixel_array
@@ -87,3 +94,15 @@ class DcmData():
         ret, frame = self.video_player.read()
         if ret:
             self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    def delete_label_file(self, file_name):
+        file_path = f"{self.label_dir}/{file_name}.txt"
+        print("file_path:",file_path)
+        
+        try:
+            os.remove(file_path)
+            print(f"file '{file_name}' has been deleted successfully")
+        except FileNotFoundError:
+            print(f"file '{file_name}' not found")
+        except Exception as e:
+            print(f"An error occured while deleting a file '{file_name}")

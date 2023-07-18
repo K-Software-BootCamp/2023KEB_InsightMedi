@@ -1,3 +1,4 @@
+import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -178,7 +179,8 @@ class Controller():
         for patch in self.ax.lines:
             patch.remove()
         self.canvas.draw()
+
         if erase_dict:
-            self.dd.frame_label_dict[self.dd.frame_number] = self.dd.label_dict_schema.copy(
-            )
-        
+            #del self.dd.frame_label_dict[self.dd.frame_number]
+            self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
+            print("초기화된 frame_label_dict", self.dd.frame_label_dict)     
