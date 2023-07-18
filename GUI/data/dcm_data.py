@@ -27,6 +27,8 @@ class DcmData():
         self.file_name = fname[0].split(sep='/')[-1].split(sep=".")[0]
         self.file_dir = os.path.dirname(fname[0])
         self.label_dir = self.file_dir + f"/{self.file_name}"
+        self.frame_label_dict.clear()
+        
         try:
             os.mkdir(self.label_dir)
         except FileExistsError:
@@ -37,6 +39,7 @@ class DcmData():
             self.load_label_dict()
         elif self.file_extension == "mp4":
             self.open_mp4_file(fname)
+            self.load_label_dict()
     
     def load_label_dict(self, custom_range=None):
         for file_name in sorted(os.listdir(self.label_dir)):
