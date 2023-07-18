@@ -31,6 +31,8 @@ class MyWindow(QMainWindow):
 
         self.main_widget = QWidget()
         self.cid = None
+        
+        #DcmData Added
         self.dd = DcmData()
         self.setCentralWidget(self.main_widget)
 
@@ -198,13 +200,13 @@ class MyWindow(QMainWindow):
                     self.timer.start()
             else:    # viewer에 호환되지 않는 확장자 파일
                 pass
-            self.set_status_bar()
         else:
-            pass
+            print("Open fail")
 
     def open_label(self, ld):
         for frame in ld:
             # label = QLabel(label_text)
+            print(frame)
             button = QPushButton(f"{frame} frame", self)
             self.buttons[frame] = button
             button.clicked.connect(partial(self.label_clicked, frame))
@@ -213,8 +215,8 @@ class MyWindow(QMainWindow):
 
     def delete_label(self):
         while self.label_layout.count():
-            item = self.label_layout.takeAt(0)  
-            widget = item.widget()  
+            item = self.label_layout.takeAt(0)
+            widget = item.widget()
             if widget:
                 widget.deleteLater()
 
@@ -257,6 +259,7 @@ class MyWindow(QMainWindow):
         print("Save As...")
 
     def sliderValueChanged(self, value):
+        print("Slider Value : ", value)
         self.dd.frame_number = value
         self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
         self.updateFrame()
