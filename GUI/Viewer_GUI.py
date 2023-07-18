@@ -165,15 +165,23 @@ class MyWindow(QMainWindow):
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
         if fname[0]:
+            # 파일 열기
             dd = self.dd
             dd.open_file(fname)
+
+            # viewer 설정 초기화
+            self.slider.setValue(0)
             self.set_status_bar()
             self.delete_label()
             self.open_label(dd.frame_label_dict)
             self.ax = self.canvas.figure.subplots()
+            print(self.buttons)
+            self.buttons.clear() if self.buttons else None
+
             if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
                 self.ax.imshow(dd.image, cmap=plt.cm.gray)
                 self.canvas.draw()
+                self.slider.setMaximum(0)
 
             elif dd.file_extension == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
@@ -206,6 +214,7 @@ class MyWindow(QMainWindow):
         for frame in ld:
             # label = QLabel(label_text)
             button = QPushButton(f"{frame} frame", self)
+            print('button created')
             self.buttons[frame] = button
             button.clicked.connect(partial(self.label_clicked, frame))
             # self.layout.addWidget(label)
@@ -220,6 +229,9 @@ class MyWindow(QMainWindow):
 
     def label_clicked(self, frame):
         ld = self.dd.frame_label_dict[frame]
+        self.slider.setValue(frame)
+        self.updateFrame()
+
         if ld["line"]:
             line = ld["line"]
             for coor in line:
