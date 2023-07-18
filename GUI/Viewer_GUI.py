@@ -231,6 +231,7 @@ class MyWindow(QMainWindow):
 
     def label_clicked(self, frame):
         ld = self.dd.frame_label_dict[frame]
+        self.dd.frame_number = frame
         self.slider.setValue(frame)
         self.updateFrame()
 
