@@ -167,14 +167,20 @@ class MyWindow(QMainWindow):
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
         if fname[0]:
+            # 파일 열기
             dd = self.dd
             dd.open_file(fname)
+
+            # viewer 설정 초기화
             self.set_status_bar()
             self.delete_label()
             self.open_label(dd.frame_label_dict)
+            self.slider.setValue(0)
+            self.buttons.clear() if self.buttons else None
 
             if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
+                self.slider.setMaximum(0)
                 
             elif dd.file_extension == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
@@ -220,6 +226,10 @@ class MyWindow(QMainWindow):
         self.label_layout.update()
 
     def label_clicked(self, frame):
+        if self.dd.file_extension == "mp4":
+            self.dd.frame_number = frame
+            self.slider.setValue(frame)
+            self.updateFrame()
         self.cl.label_clicked(frame)
 
     def save(self):
