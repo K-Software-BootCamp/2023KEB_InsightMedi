@@ -49,7 +49,7 @@ class Controller():
                 if self.points:
                     x, y = zip(*self.points)
                     self.ax.plot(x, y, color='red')
-                    self.points = []
+                    self.end = None
                     self.dd.add_label("freehand", self.points)
             self.canvas.draw()
 
@@ -99,7 +99,7 @@ class Controller():
     def on_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
-            self.line_end = (event.xdata, event.ydata)
+            self.end = (event.xdata, event.ydata)
             self.draw_annotation()
 
     def on_freehand_mouse_move(self, event):
