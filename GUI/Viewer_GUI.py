@@ -1,3 +1,4 @@
+#%%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -126,10 +127,6 @@ class MyWindow(QMainWindow):
         toolbar.addAction(eraser_action)
 
         toolbar.addSeparator()  # 구분선
-
-        '''
-        보기 도구
-        '''
 
         # 확대 액션
         zoom_in_action = QAction(
@@ -528,21 +525,55 @@ class MyWindow(QMainWindow):
             current_xlim = self.ax.get_xlim()
             current_ylim = self.ax.get_ylim()
 
-            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
             image_width = self.ds.pixel_array.shape[1]
             image_height = self.ds.pixel_array.shape[0]
 
-            # DICOM 이미지 경계 안에서 화면 이동하는지 확인
-            if new_xlim[0] >= 0 and new_xlim[1] <= image_width:
-                self.ax.set_xlim(new_xlim)
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
 
-            if new_ylim[0] >= 0 and new_ylim[1] <= image_height:
-                self.ax.set_ylim(new_ylim)
+            # 수평 이동 막기
+            if new_xlim[0] < 0:
+                x_diff = current_xlim[0]
+            elif new_xlim[1] > image_width:
+                x_diff = current_xlim[1] - image_width
+
+            # 수직 이동 막기
+            if new_ylim[0] < 0:
+                y_diff = current_ylim[0]
+            elif new_ylim[1] > image_height:
+                y_diff = current_ylim[1] - image_height
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            if new_xlim[0] < 0:
+                new_xlim = (0, current_xlim[1] - current_xlim[0])
+            elif new_xlim[1] > image_width:
+                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
+
+            if new_ylim[0] < 0:
+                new_ylim = (0, current_ylim[1] - current_ylim[0])
+            elif new_ylim[1] > image_height:
+                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
+
+            # 확대 후 경계로 업데이트
+            self.ax.set_xlim(new_xlim)
+            self.ax.set_ylim(new_ylim)
 
             self.pan_start = (event.x, event.y)
             self.canvas.draw()
+
+            # 경계 체크 이후 새로운 xlim 및 ylim 설정
+            if new_xlim[0] < 0:
+                new_xlim = (0, current_xlim[1] - current_xlim[0])
+            elif new_xlim[1] > image_width:
+                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
+
+            if new_ylim[0] < 0:
+                new_ylim = (0, current_ylim[1] - current_ylim[0])
+            elif new_ylim[1] > image_height:
+                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
+
 
     def on_pan_mouse_release(self, event):
         if event.button == 1 and self.is_panning:
@@ -566,3 +597,5 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
+
+# %%
