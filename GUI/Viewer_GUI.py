@@ -174,11 +174,11 @@ class MyWindow(QMainWindow):
             self.open_label(dd.frame_label_dict)
 
             if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
-                self.cl.img_show(dd.image, cmap=plt.cm.gray)
+                self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
                 
             elif dd.file_extension == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
-                self.cl.img_show(dd.image, cmap=plt.cm.gray)
+                self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
 
                 print(dd.total_frame)
                 self.slider.setMaximum(dd.total_frame - 1)
@@ -217,6 +217,7 @@ class MyWindow(QMainWindow):
             widget = item.widget()
             if widget:
                 widget.deleteLater()
+        self.label_layout.update()
 
     def label_clicked(self, frame):
         self.cl.label_clicked(frame)
@@ -254,9 +255,7 @@ class MyWindow(QMainWindow):
         ret, frame = self.dd.video_player.read()
         if ret:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.ax.clear()
-            self.ax.imshow(frame_rgb)
-            self.canvas.draw()
+            self.cl.img_show(frame_rgb, clear=True)
 
     def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
@@ -278,14 +277,10 @@ class MyWindow(QMainWindow):
         # print(wl, ww)
         modality_lut_image = apply_modality_lut(dd.image, dd.ds)
         voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
-
         # comparison = voi_lut_image == self.image
         # mismatch_count = np.count_nonzero(comparison == False)
-        # print(voi_lut_image)
         # print(mismatch_count)
-
-        self.ax.imshow(voi_lut_image, cmap=plt.cm.gray)
-        self.canvas.draw()
+        self.cl.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
 
     def draw_straight_line(self):
         self.cl.init_draw_mode("line")

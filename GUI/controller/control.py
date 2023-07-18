@@ -138,8 +138,11 @@ class Controller():
                         x_coords, y_coords, color='red')
         self.canvas.draw()
 
-    def img_show(self, img, cmap):
-        self.ax = self.canvas.figure.subplots()
+    def img_show(self, img, cmap='viridis', init=False, clear=False):
+        if init:
+            self.ax = self.canvas.figure.subplots()
+        if clear:
+            self.ax.clear()
         self.ax.imshow(img, cmap=cmap)
         self.canvas.draw()
 
