@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
+
 import matplotlib.pyplot as plt
 
 from controller.control import Controller
@@ -33,10 +33,11 @@ class MyWindow(QMainWindow):
 
         # DcmData Added
         self.dd = DcmData()
+        
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
-        self.cl = Controller(self.canvas, self.dd)
+        
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
@@ -54,6 +55,9 @@ class MyWindow(QMainWindow):
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
         self.statusBar().showMessage("")
+
+        #Create Controller
+        self.cl = Controller(self.dd, self.canvas)
         '''
         파일 도구
         '''
@@ -80,7 +84,7 @@ class MyWindow(QMainWindow):
         # 윈도잉 액션
         windowing_action = QAction(
             QIcon('icon/windowing_icon.png'), "Windowing", self)
-        windowing_action.triggered.connect(self.windowing_input_dialog)
+        windowing_action.triggered.connect(self.apply_windowing)
         toolbar.addAction(windowing_action)
 
         toolbar.addSeparator()  # 구분선
@@ -257,30 +261,20 @@ class MyWindow(QMainWindow):
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.cl.img_show(frame_rgb, clear=True)
 
-    def windowing_input_dialog(self):
+    # def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
-        windowing_dialog = InputDialog()
-        if windowing_dialog.exec_() == QDialog.Accepted:
-            wl_value, ww_value, ok_flag = windowing_dialog.getText()
+        # windowing_dialog = InputDialog()
+        # if windowing_dialog.exec_() == QDialog.Accepted:
+        #     wl_value, ww_value, ok_flag = windowing_dialog.getText()
 
-            if ok_flag:
-                wl = wl_value
-                ww = ww_value
-                self.apply_windowing(ww, wl)
+        #     if ok_flag:
+        #         wl = wl_value
+        #         ww = ww_value
+        #         self.apply_windowing(ww, wl)
+        
 
-    def apply_windowing(self, ww, wl):
-        # Windowing apply 구현
-        dd = self.dd
-        dd.ds.WindowCenter = wl
-        dd.ds.WindowWidth = ww
-        self.set_status_bar()
-        # print(wl, ww)
-        modality_lut_image = apply_modality_lut(dd.image, dd.ds)
-        voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
-        # comparison = voi_lut_image == self.image
-        # mismatch_count = np.count_nonzero(comparison == False)
-        # print(mismatch_count)
-        self.cl.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
+    def apply_windowing(self):
+        self.cl.init_draw_mode("windowing", self.set_status_bar)
 
     def draw_straight_line(self):
         self.cl.init_draw_mode("line")

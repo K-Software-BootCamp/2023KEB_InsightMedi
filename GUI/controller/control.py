@@ -3,10 +3,11 @@ import numpy as np
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.patches import Circle, Rectangle
+from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 
 
 class Controller():
-    def __init__(self, canvas, dd) -> None:
+    def __init__(self, dd, canvas) -> None:
         self.canvas = canvas
         self.dd = dd
         self.ax = None
@@ -18,6 +19,7 @@ class Controller():
         self.end = None
         self.points = []
         self.is_drawing = None
+        
 
     def draw_annotation(self):
         if self.start and self.end and self.is_drawing == False:
@@ -51,6 +53,27 @@ class Controller():
                     self.ax.plot(x, y, color='red')
                     self.end = None
                     self.dd.add_label("freehand", self.points)
+            
+            elif self.annotation_mode == "windowing":
+                dd = self.dd
+                dx = self.end[0] - self.start[0]
+                dy = self.end[1] - self.start[1]
+                try:
+                    dd.ds.WindowCenter = round(dd.ds.WindowCenter + dx, 2)
+                    dd.ds.WindowWidth = round(dd.ds.WindowWidth - dy, 2)
+                    # print(wl, ww)
+                    modality_lut_image = apply_modality_lut(dd.image, dd.ds)
+                    voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
+                    # comparison = voi_lut_image == self.image
+                    # mismatch_count = np.count_nonzero(comparison == False)
+                    # print(mismatch_count)
+                    self.func()
+                    self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
+                except AttributeError:
+                    dd.ds.WindowCenter = 200
+                    dd.ds.WindowWidth = 200
+                    pass
+                
             self.canvas.draw()
 
     def set_mpl_connect(self, *args):
@@ -61,6 +84,7 @@ class Controller():
         self.cid = [cid1, cid2, cid3]
 
     def set_mpl_disconnect(self):
+        self.func = None
         if self.cid:
             c = self.cid
             self.canvas.mpl_disconnect(c[0])
@@ -80,11 +104,13 @@ class Controller():
             self.set_mpl_connect(self.on_mouse_press,
                                  self.on_mouse_move, self.on_mouse_release)
 
-    def init_draw_mode(self, mode):
+    def init_draw_mode(self, mode, func=None):
         # 직선 그리기 기능 구현
         print(mode)
         self.annotation_mode = mode
         self.draw_init()
+        if func:
+            self.func = func
 
     def on_mouse_press(self, event):
         if event.button == 1:
@@ -155,3 +181,4 @@ class Controller():
         if erase_dict:
             self.dd.frame_label_dict[self.dd.frame_number] = self.dd.label_dict_schema.copy(
             )
+        
