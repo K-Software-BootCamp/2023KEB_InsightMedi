@@ -181,6 +181,7 @@ class Controller():
         self.canvas.draw()
 
         if erase_dict:
-            #del self.dd.frame_label_dict[self.dd.frame_number]
-            self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
+            if self.dd.frame_number in self.dd.frame_label_dict:
+                del self.dd.frame_label_dict[self.dd.frame_number]
+            #self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
             print("초기화된 frame_label_dict", self.dd.frame_label_dict)     
