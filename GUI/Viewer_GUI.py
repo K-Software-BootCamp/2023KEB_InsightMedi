@@ -169,14 +169,14 @@ class MyWindow(QMainWindow):
             # 파일 열기
             dd = self.dd
             dd.open_file(fname)
+
+            #viewer 설정 초기화
             self.set_status_bar()
             self.delete_total_label()
             self.slider.setValue(0)
             self.buttons.clear() if self.buttons else None
             self.open_label(dd.frame_label_dict)
-            self.ax = self.canvas.figure.subplots()
-            print(self.buttons)
-            self.buttons.clear() if self.buttons else None
+
 
             if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -423,5 +423,3 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
-
-# %%
