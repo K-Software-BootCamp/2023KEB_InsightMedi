@@ -1,3 +1,4 @@
+#%%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -29,6 +30,7 @@ class MyWindow(QMainWindow):
         # self.setFixedSize(700, 700)
 
         self.main_widget = QWidget()
+        self.main_widget.setStyleSheet("background-color: #303030;")
         self.cid = None
 
         # DcmData Added
@@ -54,6 +56,7 @@ class MyWindow(QMainWindow):
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
+        # toolbar.setStyleSheet("background-color: #303030;")
         self.statusBar().showMessage("")
 
         #Create Controller
@@ -62,18 +65,18 @@ class MyWindow(QMainWindow):
         파일 도구
         '''
 
-        # 파일 열기 버튼
+        # Open file action
         open_action = QAction(
             QIcon('icon/open_file_icon.png'), "Open File", self)
         open_action.triggered.connect(self.open_file)
         toolbar.addAction(open_action)
 
-        # 파일 저장하기 버튼
+        # Save file action
         save_action = QAction(QIcon('icon/save_icon.png'), "Save", self)
         save_action.triggered.connect(self.save)
         toolbar.addAction(save_action)
 
-        # 파일 다른 이름으로 저장하기 버튼
+        # Save file as action
         save_as_action = QAction(
             QIcon('icon/save_as_icon.png'), "Save As", self)
         save_as_action.triggered.connect(self.save_as)
@@ -81,7 +84,7 @@ class MyWindow(QMainWindow):
 
         toolbar.addSeparator()  # 구분선
 
-        # 윈도잉 액션
+        # Windowing action
         windowing_action = QAction(
             QIcon('icon/windowing_icon.png'), "Windowing", self)
         windowing_action.triggered.connect(self.apply_windowing)
@@ -92,33 +95,29 @@ class MyWindow(QMainWindow):
         self.is_panning = False
         self.pan_start = None
 
-        '''
-        어노테이션 도구
-        '''
-
-        # 직선 액션
+        # Line action
         straightline_action = QAction(
             QIcon('icon/straightline_icon.png'), "Line", self)
         straightline_action.triggered.connect(self.draw_straight_line)
         toolbar.addAction(straightline_action)
 
-        # 원 액션
+        # Circle action
         circle_action = QAction(QIcon('icon/circle_icon.png'), "Circle", self)
         circle_action.triggered.connect(self.draw_circle)
         toolbar.addAction(circle_action)
 
-        # 사각형 액션
+        # Rectangle action
         rectangle_action = QAction(
             QIcon('icon/rectangle_icon.png'), "Rectangle", self)
         rectangle_action.triggered.connect(self.draw_rectangle)
         toolbar.addAction(rectangle_action)
 
-        # 곡선 액션
+        # Curve action
         curve_action = QAction(QIcon('icon/curve_icon.png'), "Curve", self)
         curve_action.triggered.connect(self.draw_curve)
         toolbar.addAction(curve_action)
 
-        # 자유형 액션
+        # Freehand action
         freehand_action = QAction(
             QIcon('icon/freehand_icon.png'), "Free Hand", self)
         freehand_action.triggered.connect(self.draw_freehand)
@@ -131,17 +130,13 @@ class MyWindow(QMainWindow):
 
         toolbar.addSeparator()  # 구분선
 
-        '''
-        보기 도구
-        '''
-
-        # 확대 액션
+        # Zoom in action
         zoom_in_action = QAction(
             QIcon('icon/zoom_in_icon.png'), "Zoom In", self)
         zoom_in_action.triggered.connect(self.zoom_in)
         toolbar.addAction(zoom_in_action)
 
-        # 축소 액션
+        # Zoom out action
         zoom_out_action = QAction(
             QIcon('icon/zoom_out_icon.png'), "Zoom Out", self)
         zoom_out_action.triggered.connect(self.zoom_out)
@@ -355,21 +350,55 @@ class MyWindow(QMainWindow):
             current_xlim = self.ax.get_xlim()
             current_ylim = self.ax.get_ylim()
 
-            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
             image_width = self.ds.pixel_array.shape[1]
             image_height = self.ds.pixel_array.shape[0]
 
-            # DICOM 이미지 경계 안에서 화면 이동하는지 확인
-            if new_xlim[0] >= 0 and new_xlim[1] <= image_width:
-                self.ax.set_xlim(new_xlim)
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
 
-            if new_ylim[0] >= 0 and new_ylim[1] <= image_height:
-                self.ax.set_ylim(new_ylim)
+            # 수평 이동 막기
+            if new_xlim[0] < 0:
+                x_diff = current_xlim[0]
+            elif new_xlim[1] > image_width:
+                x_diff = current_xlim[1] - image_width
+
+            # 수직 이동 막기
+            if new_ylim[0] < 0:
+                y_diff = current_ylim[0]
+            elif new_ylim[1] > image_height:
+                y_diff = current_ylim[1] - image_height
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            if new_xlim[0] < 0:
+                new_xlim = (0, current_xlim[1] - current_xlim[0])
+            elif new_xlim[1] > image_width:
+                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
+
+            if new_ylim[0] < 0:
+                new_ylim = (0, current_ylim[1] - current_ylim[0])
+            elif new_ylim[1] > image_height:
+                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
+
+            # 확대 후 경계로 업데이트
+            self.ax.set_xlim(new_xlim)
+            self.ax.set_ylim(new_ylim)
 
             self.pan_start = (event.x, event.y)
             self.canvas.draw()
+
+            # 경계 체크 이후 새로운 xlim 및 ylim 설정
+            if new_xlim[0] < 0:
+                new_xlim = (0, current_xlim[1] - current_xlim[0])
+            elif new_xlim[1] > image_width:
+                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
+
+            if new_ylim[0] < 0:
+                new_ylim = (0, current_ylim[1] - current_ylim[0])
+            elif new_ylim[1] > image_height:
+                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
+
 
     def on_pan_mouse_release(self, event):
         if event.button == 1 and self.is_panning:
@@ -393,3 +422,4 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
+

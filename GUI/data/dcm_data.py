@@ -1,10 +1,12 @@
 from pydicom import dcmread
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 import cv2
 import json
 import copy
 
+matplotlib.use("Qt5Agg")
 
 class DcmData():
     def __init__(self) -> None:
@@ -25,7 +27,7 @@ class DcmData():
 
     def open_file(self, fname, *args, **kwargs):
         self.file_extension = fname[0].split('/')[-1].split(".")[-1]
-        self.file_name = fname[0].split(sep='/')[-1].split(sep=".")[0]
+        self.file_name = fname[0].split('/')[-1].split(".")[0]
         self.file_dir = os.path.dirname(fname[0])
         self.label_dir = self.file_dir + f"/{self.file_name}"
         self.frame_label_dict.clear()
