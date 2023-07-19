@@ -176,12 +176,11 @@ class MyWindow(QMainWindow):
             dd.open_file(fname)
 
             # viewer 설정 초기화
-            self.set_status_bar()
-            self.delete_total_label()
-            self.slider.setValue(0)
-            self.buttons.clear() if self.buttons else None
-            self.open_label(dd.frame_label_dict)
-            
+            self.set_status_bar()    # 현재 windwoing 상태 초기화
+            self.delete_total_label()   # label layout에 추가된 button widget 전체 삭제
+            self.slider.setValue(0)    # slider value 초기화
+            self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
+            self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
 
             if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)

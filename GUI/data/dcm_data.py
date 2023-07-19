@@ -42,7 +42,7 @@ class DcmData():
             self.open_mp4_file(fname)
             self.load_label_dict()
     
-    def load_label_dict(self, custom_range=None):    # text 파일로부터 label dictionary를 불러옴
+    def load_label_dict(self, custom_range=None):    # text 파일로부터 현재 label dictionary를 불러옴
         for file_name in sorted(os.listdir(self.label_dir)):
             print(file_name)
             frame_number = int(file_name.split(".")[0])
