@@ -61,9 +61,6 @@ class MyWindow(QMainWindow):
 
         #Create Controller
         self.cl = Controller(self.dd, self.canvas)
-        self.canvas.mpl_connect('button_press_event', self.cl.on_pan_mouse_press)
-        self.canvas.mpl_connect('motion_notify_event', self.cl.on_pan_mouse_move)
-        self.canvas.mpl_connect('button_release_event', self.cl.on_pan_mouse_release)
         '''
         파일 도구
         '''
@@ -357,22 +354,10 @@ class MyWindow(QMainWindow):
             print(self.dd.frame_label_dict)
 
     def zoom_in(self):
-        self.cl.zoom_in()
-
-    def on_pan_mouse_press(self, event):
-        if event.button == 1 and not self.cl.is_panning:
-            self.cl.on_pan_mouse_press(event)
-
-    def on_pan_mouse_move(self, event):
-        if self.cl.is_panning:
-            self.cl.on_pan_mouse_move(event)
-
-    def on_pan_mouse_release(self, event):
-        if event.button == 1 and self.cl.is_panning:
-            self.cl.on_pan_mouse_release(event)
+        self.cl.initie_zoom_mode("in")
 
     def zoom_out(self):
-        self.cl.zoom_out()
+        self.cl.initie_zoom_mode("out")
 
 
 if __name__ == "__main__":

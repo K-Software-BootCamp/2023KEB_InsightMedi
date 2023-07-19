@@ -85,10 +85,7 @@ class Controller():
         cid3 = self.canvas.mpl_connect('button_release_event', args[2])
         self.cid = [cid1, cid2, cid3]
 
-        cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
-        cid5 = self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
-        cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
-        self.cid.extend([cid4, cid5, cid6])
+        
 
     def set_mpl_disconnect(self):
         self.func = None
@@ -110,6 +107,13 @@ class Controller():
         else:
             self.set_mpl_connect(self.on_mouse_press,
                                  self.on_mouse_move, self.on_mouse_release)
+    
+    def initie_zoom_mode(self, mode):
+        self.set_mpl_disconnect()
+        cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
+        cid5 = self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
+        cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
+        self.cid = [cid4, cid5, cid6]
 
     def init_draw_mode(self, mode, func=None):
         # 직선 그리기 기능 구현
@@ -211,9 +215,9 @@ class Controller():
 
     def frame_apply_windowing(self, dd, frame):
         b, g, r = cv2.split(frame)
-        r = cv2.convertScaleAbs(r, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
-        g = cv2.convertScaleAbs(g, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
-        b = cv2.convertScaleAbs(b, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
+        r = cv2.convertScaleAbs(r, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
+        g = cv2.convertScaleAbs(g, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
+        b = cv2.convertScaleAbs(b, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
         return cv2.merge((b, g, r))
         
     def dcm_windowing_change(self, dd, dx, dy):
