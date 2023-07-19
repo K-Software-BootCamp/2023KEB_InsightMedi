@@ -1,14 +1,16 @@
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
+import cv2
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.patches import Circle, Rectangle
 from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
+from data.dcm_data import DcmData
 
 
 class Controller():
-    def __init__(self, dd, canvas) -> None:
+    def __init__(self, dd: DcmData, canvas: FigureCanvas) -> None:
         self.canvas = canvas
         self.dd = dd
         self.fig = canvas.figure
@@ -61,27 +63,19 @@ class Controller():
                     self.ax.plot(x, y, color='red')
                     self.end = None
                     self.dd.add_label("freehand", self.points)
-            
+
             elif self.annotation_mode == "windowing":
                 dd = self.dd
                 dx = self.end[0] - self.start[0]
                 dy = self.end[1] - self.start[1]
-                try:
-                    dd.ds.WindowCenter = round(dd.ds.WindowCenter + dx, 2)
-                    dd.ds.WindowWidth = round(dd.ds.WindowWidth - dy, 2)
-                    # print(wl, ww)
-                    modality_lut_image = apply_modality_lut(dd.image, dd.ds)
-                    voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
-                    # comparison = voi_lut_image == self.image
-                    # mismatch_count = np.count_nonzero(comparison == False)
-                    # print(mismatch_count)
-                    self.func()
-                    self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
-                except AttributeError:
-                    dd.ds.WindowCenter = 200
-                    dd.ds.WindowWidth = 200
-                    pass
-                
+
+                if dd.file_mode == 'mp4':
+                    self.mp4_windowing_change(dd, dx, dy)
+                elif dd.file_mode == 'dcm':
+                    self.dcm_windowing_change(dd, dx, dy)
+                else:
+                    print("Unexpected file format")
+
             self.canvas.draw()
 
     def set_mpl_connect(self, *args):
@@ -197,8 +191,53 @@ class Controller():
         if erase_dict:
             if self.dd.frame_number in self.dd.frame_label_dict:
                 del self.dd.frame_label_dict[self.dd.frame_number]
-            #self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
-            #print("초기화된 frame_label_dict", self.dd.frame_label_dict)
+            #self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(
+            #    self.dd.label_dict_schema)
+            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
+
+    def mp4_windowing_change(self, dd: DcmData, dx: float, dy: float):
+        
+        # print(type(frame)) : ndarray
+        # print(frame.shape) : (720, 1280, 3)
+        # print(b, g, r)
+        dd.video_wl = round(dd.video_wl + dx, 2)
+        dd.video_ww = round(dd.video_ww - dy, 2)
+        print(dd.video_wl, dd.video_ww)
+        # cv2.convertScaleAbs(frame, frame, alpha=(255.0 / dd.video_ww), beta=(dd.video_wl - dd.video_ww / 2))
+        frame = self.frame_apply_windowing(dd, dd.image)
+        self.func()
+        # print(type(frame))
+        self.img_show(frame, clear=True)
+
+    def frame_apply_windowing(self, dd, frame):
+        b, g, r = cv2.split(frame)
+        r = cv2.convertScaleAbs(r, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
+        g = cv2.convertScaleAbs(g, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
+        b = cv2.convertScaleAbs(b, alpha=abs(1.0), beta=(dd.video_wl - dd.video_ww / 2))
+        return cv2.merge((b, g, r))
+        
+    def dcm_windowing_change(self, dd, dx, dy):
+        """
+        windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.
+        windwow width는 y값에 대해 변경되므로 마우스 상하로 변경됩니다.
+        """
+        try:
+            dd.ds.WindowCenter = round(dd.ds.WindowCenter + dx, 2)
+            dd.ds.WindowWidth = round(dd.ds.WindowWidth - dy, 2)
+            # print(wl, ww)
+            modality_lut_image = apply_modality_lut(dd.image, dd.ds)
+            voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
+            # comparison = voi_lut_image == self.image
+            # mismatch_count = np.count_nonzero(comparison == False)
+            # print(mismatch_count)
+            self.func()
+            self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
+        except AttributeError:
+            dd.ds.WindowCenter = 200
+            dd.ds.WindowWidth = 200
+            #del self.dd.frame_label_dict[self.dd.frame_number]
+            self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
+            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
 
     def zoom_in(self):
         current_xlim = self.ax.get_xlim()
@@ -252,5 +291,3 @@ class Controller():
         self.ax.set_ylim(new_ylim)
 
         self.canvas.draw()
-
-# %%

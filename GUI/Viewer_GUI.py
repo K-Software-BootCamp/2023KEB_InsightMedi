@@ -1,4 +1,3 @@
-#%%
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -152,20 +151,37 @@ class MyWindow(QMainWindow):
         center_y = (screen_geometry.height() - self.height()) // 2
         self.move(center_x, center_y)
 
+    def closeEvent(self, event):
+        self.release_resources()
+        event.accept()
+        
+    def release_resources(self):
+        print("release resource")
+        if self.dd.video_player:
+            self.dd.video_player.release()
+
     def set_status_bar(self):
         # print(self.dd.ds)
-        try:
-            wl = self.dd.ds.WindowCenter
-            ww = self.dd.ds.WindowWidth
-            # print(wl, ww)
-            self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
-        except AttributeError:
-            self.statusBar().showMessage("")
-            pass
-
+        if self.dd.file_mode == 'dcm':
+            try:
+                wl = self.dd.ds.WindowCenter
+                ww = self.dd.ds.WindowWidth
+                # print(wl, ww)
+                self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
+            except AttributeError:
+                self.statusBar().showMessage("")
+        elif self.dd.file_mode == 'mp4':
+            try:
+                # print(wl, ww)
+                self.statusBar().showMessage(f"WL: {self.dd.video_wl} WW:{self.dd.video_ww} "
+                                             f"Frame: {self.dd.frame_number} / {self.dd.total_frame}")
+            except AttributeError:
+                self.statusBar().showMessage("")
+            
     def open_file(self):
         # 파일 열기 기능 구현
         self.canvas.figure.clear()
+        self.release_resources()
         options = QFileDialog.Options()
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
@@ -181,11 +197,11 @@ class MyWindow(QMainWindow):
             self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
             self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
 
-            if dd.file_extension == "DCM" or dd.file_extension == "dcm":  # dcm 파일인 경우
+            if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
                 self.slider.setMaximum(0)
                 
-            elif dd.file_extension == "mp4":  # mp4 파일인 경우
+            elif dd.file_mode == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
 
@@ -281,8 +297,11 @@ class MyWindow(QMainWindow):
     def updateFrame(self):    # frame update
         ret, frame = self.dd.video_player.read()
         if ret:
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.cl.img_show(frame_rgb, clear=True)
+            self.dd.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            f = self.cl.frame_apply_windowing(self.dd, self.dd.image)
+            self.set_status_bar()
+            self.cl.img_show(f, clear=True)
+
             if self.dd.frame_number in self.dd.frame_label_dict:
                 self.cl.label_clicked(self.dd.frame_number)
             
@@ -361,4 +380,3 @@ if __name__ == "__main__":
     myWindow = MyWindow()
     myWindow.show()
     app.exec_()
-

@@ -13,6 +13,7 @@ class DcmData():
         self.file_name = None
         self.file_dir = None
         self.file_extension = None
+        self.file_mode = None  #file_mode가 'dcm'이면 dcm또는 DCM파일. file_mode가 'mp4' mp4파일을 가리킵니다.
 
         self.label_dir = None
         self.frame_label_dict = {}
@@ -22,8 +23,12 @@ class DcmData():
         self.ds = None
         self.pixel = None
         self.image = None
+
+        self.video_player = None
         self.frame_number = 0
         self.total_frame = 0
+        self.video_wl = 255.0
+        self.video_ww = 255.0
 
     def open_file(self, fname, *args, **kwargs):
         self.file_extension = fname[0].split('/')[-1].split(".")[-1]
@@ -31,6 +36,7 @@ class DcmData():
         self.file_dir = os.path.dirname(fname[0])
         self.label_dir = self.file_dir + f"/{self.file_name}"
         self.frame_label_dict.clear()
+        self.image = None
 
         try:
             os.mkdir(self.label_dir)
@@ -38,9 +44,12 @@ class DcmData():
             pass
         
         if self.file_extension == "DCM" or self.file_extension == "dcm":
+            print(cv2.__version__)
+            self.file_mode = 'dcm'
             self.open_dcm_file(fname)
             self.load_label_dict()
         elif self.file_extension == "mp4":
+            self.file_mode = 'mp4'
             self.open_mp4_file(fname)
             self.load_label_dict()
     
