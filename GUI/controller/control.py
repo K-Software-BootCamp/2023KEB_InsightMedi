@@ -13,7 +13,8 @@ class Controller():
     def __init__(self, dd: DcmData, canvas: FigureCanvas) -> None:
         self.canvas = canvas
         self.dd = dd
-        self.ax = None
+        self.fig = canvas.figure
+        self.ax = self.fig.add_subplot(111, aspect = 'auto')
 
         self.annotation_mode = None
         self.cid = None
@@ -21,7 +22,10 @@ class Controller():
         self.start = None
         self.end = None
         self.points = []
-        self.is_drawing = None
+        self.is_drawing = False
+        self.is_panning = False
+        self.pan_Start = None
+        
 
     def draw_annotation(self):
         if self.start and self.end and self.is_drawing == False:
@@ -76,6 +80,11 @@ class Controller():
         cid2 = self.canvas.mpl_connect('motion_notify_event', args[1])
         cid3 = self.canvas.mpl_connect('button_release_event', args[2])
         self.cid = [cid1, cid2, cid3]
+
+        cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
+        cid5 = self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
+        cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
+        self.cid.extend([cid4, cid5, cid6])
 
     def set_mpl_disconnect(self):
         self.func = None
@@ -219,3 +228,59 @@ class Controller():
         except AttributeError:
             dd.ds.WindowCenter = 200
             dd.ds.WindowWidth = 200
+            #del self.dd.frame_label_dict[self.dd.frame_number]
+            self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
+            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
+
+    def zoom_in(self):
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 0.9, current_xlim[1] * 0.9)
+        new_ylim = (current_ylim[0] * 0.9, current_ylim[1] * 0.9)
+
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.draw()
+
+    def on_pan_mouse_press(self, event):
+        if event.button == 1 and not self.is_panning:
+            self.is_panning = True
+            self.pan_start = (event.x, event.y)
+            print("on_pan_mouse_press")
+
+    def on_pan_mouse_move(self, event):
+        if self.is_panning:
+            x_diff = event.x - self.pan_start[0]
+            y_diff = event.y - self.pan_start[1]
+
+            current_xlim = self.ax.get_xlim()
+            current_ylim = self.ax.get_ylim()
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            self.ax.set_xlim(new_xlim)
+            self.ax.set_ylim(new_ylim)
+
+            self.pan_start = (event.x, event.y)
+            self.canvas.draw()
+            print("on_pan_mouse_move")
+
+    def on_pan_mouse_release(self, event):
+        if event.button == 1 and self.is_panning:
+            self.is_panning = False
+            print("on_pan_mouse_release")
+
+    def zoom_out(self):
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
+        new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
+
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.draw()
