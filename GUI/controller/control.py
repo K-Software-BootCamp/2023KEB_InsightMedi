@@ -137,6 +137,7 @@ class Controller():
                 self.draw_annotation()
 
     def label_clicked(self, frame):
+        #print("frame input 확인:", frame)
         self.erase_annotation()
         self.dd.load_label_dict()
         ld = self.dd.frame_label_dict[frame]
@@ -184,4 +185,4 @@ class Controller():
             if self.dd.frame_number in self.dd.frame_label_dict:
                 del self.dd.frame_label_dict[self.dd.frame_number]
             #self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
-            print("초기화된 frame_label_dict", self.dd.frame_label_dict)     
+            #print("초기화된 frame_label_dict", self.dd.frame_label_dict)     

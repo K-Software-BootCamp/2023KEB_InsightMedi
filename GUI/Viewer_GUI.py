@@ -209,8 +209,7 @@ class MyWindow(QMainWindow):
     def open_label(self, ld):    # label dictionary로부터 존재하는 label file만큼 버튼 생성
         for frame in ld:
             # label = QLabel(label_text)
-            print("현재 frame:", frame)
-            print("현재 GUI에 있는 button 목록:", self.buttons)
+            #print("현재 GUI에 있는 button 목록:", self.buttons)
             if frame not in self.buttons:
                 button = QPushButton(f"{frame} frame", self)
                 self.buttons[frame] = button
@@ -241,7 +240,7 @@ class MyWindow(QMainWindow):
             self.dd.frame_number = frame
             self.slider.setValue(frame)
             self.updateFrame()
-        self.cl.label_clicked(frame)
+        #self.cl.label_clicked(frame)
 
     def save(self):
         # 저장 기능 구현
@@ -254,14 +253,14 @@ class MyWindow(QMainWindow):
         # 다른 이름으로 저장 기능 구현
         print("Save As...")
 
-    def sliderValueChanged(self, value):
-        print("Slider Value : ", value)
+    def sliderValueChanged(self, value):   # 슬라이더로 frame 위치 조정
+        #print("Slider Value : ", value)
         self.dd.frame_number = value
         self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
         self.updateFrame()
 
-    def playButtonClicked(self):
-        if not self.timer.isActive():
+    def playButtonClicked(self):    # 영상 재생 버튼의 함수
+        if not self.timer.isActive():   # 재생 시작
             self.play_button.setText("Pause")
             self.timer.timeout.connect(self.updateFrame)
             self.timer.start(33)
@@ -269,15 +268,24 @@ class MyWindow(QMainWindow):
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
             self.dd.frame_number = int(
-                self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES))
+                self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
             self.slider.setValue(self.dd.frame_number)
             self.timer.stop()
 
-    def updateFrame(self):
+    def updateFrame(self):    # frame update
         ret, frame = self.dd.video_player.read()
         if ret:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.cl.img_show(frame_rgb, clear=True)
+            if self.dd.frame_number in self.dd.frame_label_dict:
+                self.cl.label_clicked(self.dd.frame_number)
+            
+            if self.timer.isActive():
+                self.dd.frame_number = int(
+                    self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
+                self.slider.setValue(self.dd.frame_number)
+        
+        print("현재 frame: ", self.dd.frame_number)
 
     # def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
