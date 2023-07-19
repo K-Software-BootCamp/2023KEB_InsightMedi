@@ -20,7 +20,9 @@ class Controller():
         self.start = None
         self.end = None
         self.points = []
-        self.is_drawing = None
+        self.is_drawing = False
+        self.is_panning = False
+        self.pan_Start = None
         
 
     def draw_annotation(self):
@@ -84,6 +86,11 @@ class Controller():
         cid2 = self.canvas.mpl_connect('motion_notify_event', args[1])
         cid3 = self.canvas.mpl_connect('button_release_event', args[2])
         self.cid = [cid1, cid2, cid3]
+
+        cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
+        cid5 = self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
+        cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
+        self.cid.extend([cid4, cid5, cid6])
 
     def set_mpl_disconnect(self):
         self.func = None
@@ -198,6 +205,12 @@ class Controller():
 
         self.canvas.draw()
 
+    def on_pan_mouse_press(self, event):
+        if event.button == 1 and not self.is_panning:
+            self.is_panning = True
+            self.pan_start = (event.x, event.y)
+            print("on_pan_mouse_press")
+
     def on_pan_mouse_move(self, event):
         if self.is_panning:
             x_diff = event.x - self.pan_start[0]
@@ -206,46 +219,20 @@ class Controller():
             current_xlim = self.ax.get_xlim()
             current_ylim = self.ax.get_ylim()
 
-            image_width = self.dd.image.shape[1]
-            image_height = self.dd.image.shape[0]
-
             new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
             new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
-            # Limit horizontal panning
-            if new_xlim[0] < 0:
-                x_diff = current_xlim[0]
-            elif new_xlim[1] > image_width:
-                x_diff = current_xlim[1] - image_width
-
-            # Limit vertical panning
-            if new_ylim[0] < 0:
-                y_diff = current_ylim[0]
-            elif new_ylim[1] > image_height:
-                y_diff = current_ylim[1] - image_height
-
-            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
-            if new_xlim[0] < 0:
-                new_xlim = (0, current_xlim[1] - current_xlim[0])
-            elif new_xlim[1] > image_width:
-                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
-
-            if new_ylim[0] < 0:
-                new_ylim = (0, current_ylim[1] - current_ylim[0])
-            elif new_ylim[1] > image_height:
-                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
 
             self.ax.set_xlim(new_xlim)
             self.ax.set_ylim(new_ylim)
 
             self.pan_start = (event.x, event.y)
             self.canvas.draw()
+            print("on_pan_mouse_move")
 
     def on_pan_mouse_release(self, event):
         if event.button == 1 and self.is_panning:
             self.is_panning = False
+            print("on_pan_mouse_release")
 
     def zoom_out(self):
         current_xlim = self.ax.get_xlim()
@@ -258,3 +245,5 @@ class Controller():
         self.ax.set_ylim(new_ylim)
 
         self.canvas.draw()
+
+# %%

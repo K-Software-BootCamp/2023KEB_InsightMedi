@@ -39,8 +39,6 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
-
-        self.cl = Controller(self.dd, self.canvas)
         
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
@@ -63,6 +61,9 @@ class MyWindow(QMainWindow):
 
         #Create Controller
         self.cl = Controller(self.dd, self.canvas)
+        self.canvas.mpl_connect('button_press_event', self.cl.on_pan_mouse_press)
+        self.canvas.mpl_connect('motion_notify_event', self.cl.on_pan_mouse_move)
+        self.canvas.mpl_connect('button_release_event', self.cl.on_pan_mouse_release)
         '''
         파일 도구
         '''
@@ -344,10 +345,10 @@ class MyWindow(QMainWindow):
         self.cl.zoom_out()
 
 
-app = QApplication(sys.argv)
-
-window = MyWindow()
-window.show()
-sys.exit(app.exec_())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    myWindow = MyWindow()
+    myWindow.show()
+    app.exec_()
 
 # %%
