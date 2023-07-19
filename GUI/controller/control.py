@@ -11,7 +11,13 @@ class Controller():
     def __init__(self, dd, canvas) -> None:
         self.canvas = canvas
         self.dd = dd
-        self.ax = None
+        self.fig = canvas.figure
+        self.ax = self.fig.add_subplot(111, aspect = 'auto')
+
+        # canvas fig 색상 변경
+        self.fig.patch.set_facecolor('#303030')
+        self.ax.tick_params(axis = 'x', colors = 'gray')
+        self.ax.tick_params(axis = 'y', colors = 'gray')
 
         self.annotation_mode = None
         self.cid = None
@@ -172,6 +178,8 @@ class Controller():
         if clear:
             self.ax.clear()
         self.ax.imshow(img, cmap=cmap)
+        self.ax.tick_params(axis = 'x', colors = 'gray')
+        self.ax.tick_params(axis = 'y', colors = 'gray')
         self.canvas.draw()
 
     def erase_annotation(self, erase_dict=False):
