@@ -423,3 +423,5 @@ app = QApplication(sys.argv)
 window = MyWindow()
 window.show()
 sys.exit(app.exec_())
+
+# %%
