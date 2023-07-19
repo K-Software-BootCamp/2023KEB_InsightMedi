@@ -39,6 +39,8 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
+
+        self.cl = Controller(self.dd, self.canvas)
         
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
@@ -324,98 +326,22 @@ class MyWindow(QMainWindow):
             print(self.dd.frame_label_dict)
 
     def zoom_in(self):
-        current_xlim = self.ax.get_xlim()
-        current_ylim = self.ax.get_ylim()
+        self.cl.zoom_in()
 
-        new_xlim = (current_xlim[0] * 0.9, current_xlim[1] * 0.9)
-        new_ylim = (current_ylim[0] * 0.9, current_ylim[1] * 0.9)
-
-        self.ax.set_xlim(new_xlim)
-        self.ax.set_ylim(new_ylim)
-
-        self.set_mpl_disconnect()
-        self.set_mpl_connect(self.on_pan_mouse_press,
-                             self.on_pan_mouse_move, self.on_pan_mouse_release)
-        self.canvas.draw()
-
-    def on_pan_mouse_press(self, event):  # zoom in 상태에서 화면 이동
-        if event.button == 1 and not self.is_panning:
-            self.is_panning = True
-            self.pan_start = (event.x, event.y)
+    def on_pan_mouse_press(self, event):
+        if event.button == 1 and not self.cl.is_panning:
+            self.cl.on_pan_mouse_press(event)
 
     def on_pan_mouse_move(self, event):
-        if self.is_panning:
-            x_diff = event.x - self.pan_start[0]
-            y_diff = event.y - self.pan_start[1]
-
-            current_xlim = self.ax.get_xlim()
-            current_ylim = self.ax.get_ylim()
-
-            image_width = self.ds.pixel_array.shape[1]
-            image_height = self.ds.pixel_array.shape[0]
-
-            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
-            # 수평 이동 막기
-            if new_xlim[0] < 0:
-                x_diff = current_xlim[0]
-            elif new_xlim[1] > image_width:
-                x_diff = current_xlim[1] - image_width
-
-            # 수직 이동 막기
-            if new_ylim[0] < 0:
-                y_diff = current_ylim[0]
-            elif new_ylim[1] > image_height:
-                y_diff = current_ylim[1] - image_height
-
-            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
-
-            if new_xlim[0] < 0:
-                new_xlim = (0, current_xlim[1] - current_xlim[0])
-            elif new_xlim[1] > image_width:
-                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
-
-            if new_ylim[0] < 0:
-                new_ylim = (0, current_ylim[1] - current_ylim[0])
-            elif new_ylim[1] > image_height:
-                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
-
-            # 확대 후 경계로 업데이트
-            self.ax.set_xlim(new_xlim)
-            self.ax.set_ylim(new_ylim)
-
-            self.pan_start = (event.x, event.y)
-            self.canvas.draw()
-
-            # 경계 체크 이후 새로운 xlim 및 ylim 설정
-            if new_xlim[0] < 0:
-                new_xlim = (0, current_xlim[1] - current_xlim[0])
-            elif new_xlim[1] > image_width:
-                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
-
-            if new_ylim[0] < 0:
-                new_ylim = (0, current_ylim[1] - current_ylim[0])
-            elif new_ylim[1] > image_height:
-                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
-
+        if self.cl.is_panning:
+            self.cl.on_pan_mouse_move(event)
 
     def on_pan_mouse_release(self, event):
-        if event.button == 1 and self.is_panning:
-            self.is_panning = False
+        if event.button == 1 and self.cl.is_panning:
+            self.cl.on_pan_mouse_release(event)
 
     def zoom_out(self):
-        current_xlim = self.ax.get_xlim()
-        current_ylim = self.ax.get_ylim()
-
-        new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
-        new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
-
-        self.ax.set_xlim(new_xlim)
-        self.ax.set_ylim(new_ylim)
-
-        self.canvas.draw()
+        self.cl.zoom_out()
 
 
 app = QApplication(sys.argv)
