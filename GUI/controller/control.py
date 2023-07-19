@@ -11,7 +11,8 @@ class Controller():
     def __init__(self, dd, canvas) -> None:
         self.canvas = canvas
         self.dd = dd
-        self.ax = None
+        self.fig = canvas.figure
+        self.ax = self.fig.add_subplot(111, aspect = 'auto')
 
         self.annotation_mode = None
         self.cid = None
@@ -183,4 +184,77 @@ class Controller():
         if erase_dict:
             #del self.dd.frame_label_dict[self.dd.frame_number]
             self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
-            print("초기화된 frame_label_dict", self.dd.frame_label_dict)     
+            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
+
+    def zoom_in(self):
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 0.9, current_xlim[1] * 0.9)
+        new_ylim = (current_ylim[0] * 0.9, current_ylim[1] * 0.9)
+
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.draw()
+
+    def on_pan_mouse_move(self, event):
+        if self.is_panning:
+            x_diff = event.x - self.pan_start[0]
+            y_diff = event.y - self.pan_start[1]
+
+            current_xlim = self.ax.get_xlim()
+            current_ylim = self.ax.get_ylim()
+
+            image_width = self.dd.image.shape[1]
+            image_height = self.dd.image.shape[0]
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            # Limit horizontal panning
+            if new_xlim[0] < 0:
+                x_diff = current_xlim[0]
+            elif new_xlim[1] > image_width:
+                x_diff = current_xlim[1] - image_width
+
+            # Limit vertical panning
+            if new_ylim[0] < 0:
+                y_diff = current_ylim[0]
+            elif new_ylim[1] > image_height:
+                y_diff = current_ylim[1] - image_height
+
+            new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
+            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+
+            if new_xlim[0] < 0:
+                new_xlim = (0, current_xlim[1] - current_xlim[0])
+            elif new_xlim[1] > image_width:
+                new_xlim = (image_width - (current_xlim[1] - current_xlim[0]), image_width)
+
+            if new_ylim[0] < 0:
+                new_ylim = (0, current_ylim[1] - current_ylim[0])
+            elif new_ylim[1] > image_height:
+                new_ylim = (image_height - (current_ylim[1] - current_ylim[0]), image_height)
+
+            self.ax.set_xlim(new_xlim)
+            self.ax.set_ylim(new_ylim)
+
+            self.pan_start = (event.x, event.y)
+            self.canvas.draw()
+
+    def on_pan_mouse_release(self, event):
+        if event.button == 1 and self.is_panning:
+            self.is_panning = False
+
+    def zoom_out(self):
+        current_xlim = self.ax.get_xlim()
+        current_ylim = self.ax.get_ylim()
+
+        new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
+        new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
+
+        self.ax.set_xlim(new_xlim)
+        self.ax.set_ylim(new_ylim)
+
+        self.canvas.draw()
