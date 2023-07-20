@@ -5,6 +5,7 @@ import cv2
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.patches import Circle, Rectangle
+from matplotlib.lines import Line2D
 from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 from data.dcm_data import DcmData
 
@@ -22,7 +23,8 @@ class Controller():
         self.ax.tick_params(axis = 'y', colors = 'gray')
 
         self.annotation_mode = None
-        self.cid = None
+        self.selector_mode = None
+        self.cid = []
 
         self.start = None
         self.end = None
@@ -30,13 +32,17 @@ class Controller():
         self.is_drawing = False
         self.is_panning = False
         self.pan_Start = None
+
+        self.press=None
+        self.artist = None
         
     def draw_annotation(self):
         if self.start and self.end and self.is_drawing == False:
+            label_name = self.dd.label_name
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
-                self.ax.plot(x, y, color='red')[0]
+                self.ax.plot(x, y, picker=True, label=label_name, color='red')[0]
                 self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
 
             elif self.annotation_mode == "rectangle":
@@ -45,7 +51,7 @@ class Controller():
                 x = min(self.start[0], self.end[0])
                 y = min(self.start[1], self.end[1])
                 self.ax.add_patch(
-                    Rectangle((x, y), width, height, fill=False, edgecolor='red'))
+                    Rectangle((x, y), width, height,  fill=False, picker=True, label=label_name, edgecolor='red') )
                 self.dd.add_label("rectangle", (x, y, width, height))
 
             elif self.annotation_mode == "circle":
@@ -54,13 +60,13 @@ class Controller():
                 center = self.start
                 radius = np.sqrt(dx ** 2 + dy ** 2)
                 self.ax.add_patch(
-                    Circle(center, radius, fill=False, edgecolor='red'))
+                    Circle(center, radius, fill=False, picker=True, label=label_name, edgecolor='red'))
                 self.dd.add_label("circle", (center, radius))
 
             elif self.annotation_mode == "freehand":
                 if self.points:
                     x, y = zip(*self.points)
-                    self.ax.plot(x, y, color='red')
+                    self.ax.plot(x, y, picker=True, label=label_name, color='red')
                     self.end = None
                     self.dd.add_label("freehand", self.points)
 
@@ -73,8 +79,6 @@ class Controller():
                 #     self.mp4_windowing_change(dd, dx, dy)
                 if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
-                else:
-                    print("Unexpected file format")
 
             self.canvas.draw()
 
@@ -85,15 +89,14 @@ class Controller():
         cid3 = self.canvas.mpl_connect('button_release_event', args[2])
         self.cid = [cid1, cid2, cid3]
 
-        
 
     def set_mpl_disconnect(self):
         self.func = None
+        self.press = None
         if self.cid:
-            c = self.cid
-            self.canvas.mpl_disconnect(c[0])
-            self.canvas.mpl_disconnect(c[1])
-            self.canvas.mpl_disconnect(c[2])
+            for cid in self.cid:
+                self.canvas.mpl_disconnect(cid)
+        self.cid = []
 
     def draw_init(self):
         self.start = None
@@ -107,7 +110,7 @@ class Controller():
         else:
             self.set_mpl_connect(self.on_mouse_press,
                                  self.on_mouse_move, self.on_mouse_release)
-    
+
     def initie_zoom_mode(self, mode):
         self.set_mpl_disconnect()
         cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
@@ -123,6 +126,99 @@ class Controller():
         if func:
             self.func = func
 
+    def init_selector(self, mode):
+        self.set_mpl_disconnect()
+        self.selector_mode = mode
+        if mode =="delete":
+            # if self.artist:
+            #     #선택된 artist가 있고 버튼을 누르면 지웁니다.
+            #     self.artist.remove()
+            #     self.canvas.draw()
+            cid4 = self.canvas.mpl_connect('key_press_event', self.selector_key_on_press)
+            self.cid.append(cid4)
+        cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
+        cid1 = self.canvas.mpl_connect('button_press_event', self.selector_on_press)
+        cid2 = self.canvas.mpl_connect('motion_notify_event', self.selector_on_move)
+        cid3 = self.canvas.mpl_connect('button_release_event', self.selector_on_release)
+        self.cid.extend([cid1, cid2, cid3])
+        print(self.cid)
+    
+    def selector_on_pick(self, event):
+        print(dir(event))
+        #기존의 선택된 artist의 색깔을 원상태인 빨간색으로 바꿔줍니다.
+        if event.artist != self.artist:
+                try:
+                    if isinstance(self.artist, Line2D):
+                        self.artist.set_color('red')
+                    else:
+                        self.artist.set_edgecolor('red')
+                except AttributeError:
+                    pass
+
+        if self.selector_mode == 'delete':
+            try:
+                event.artist.remove()
+                #label button과 frame_label_dict에서 해당 라벨 삭제
+                # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_name].delete()
+                # self.dd.delete_label_file
+            except AttributeError:
+                pass
+        elif self.selector_mode == 'selector':
+            #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
+            self.artist = event.artist
+            
+            # print(dir(self.artist))         
+            if isinstance(self.artist, Line2D):
+                print("Line select")
+                self.artist.set_color('blue')
+            else:
+                self.artist.set_edgecolor('blue')
+            print(self.press)
+            print(f"label name : {self.artist.get_label()}")
+        self.canvas.draw()
+    
+    def selector_on_press(self, event):
+        if event.inaxes != self.artist.axes:
+            return
+        contains, attrd = self.artist.contains(event)
+        if not contains:
+            return
+        print('event contains', self.artist.xy)
+        self.press = self.artist.xy, (event.xdata, event.ydata)
+        print(self.press)
+        # print(dir(event))
+
+    def selector_on_move(self, event):
+        """Move the rectangle if the mouse is over us."""
+        try:
+            if self.press is None or event.inaxes != self.artist.axes:
+                return
+        except AttributeError:
+            return
+        if isinstance(self.artist, Line2D):
+            pass
+
+        elif isinstance(self.artist, Rectangle):
+            (x0, y0), (xpress, ypress) = self.press
+            dx = event.xdata - xpress
+            dy = event.ydata - ypress
+            # print(f'x0={x0}, xpress={xpress}, event.xdata={event.xdata}, '
+            #       f'dx={dx}, x0+dx={x0+dx}')
+            self.artist.set_x(x0+dx)
+            self.artist.set_y(y0+dy)
+        self.canvas.draw()
+
+    def selector_on_release(self, event):
+        self.press = None
+        self.canvas.draw()
+
+
+    def selector_key_on_press(self, event):
+        print(event)
+        if event == "delete":
+            print("delete press")
+
+        
     def on_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
@@ -153,26 +249,24 @@ class Controller():
         if ld["line"]:
             line = ld["line"]
             for coor in line:
-                self.ax.plot(
-                    (coor[0], coor[2]), (coor[1], coor[3]), color='red')
+                self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, color='red')
         if ld["rectangle"]:
             rec = ld["rectangle"]
             for coor in rec:
-                self.ax.add_patch(
-                    Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False, edgecolor='red'))
+                self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
+                                            picker=True, edgecolor='red'))
         if ld["circle"]:
             cir = ld["circle"]
             for coor in cir:
                 self.ax.add_patch(
-                    Circle(coor[0], coor[1], fill=False, edgecolor='red'))
-
+                    Circle(coor[0], coor[1], fill=False, picker=True, edgecolor='red'))
         if ld["freehand"]:
             freehand = ld["freehand"]
             for fh in freehand:
                 for coor in fh:
                     x_coords, y_coords = zip(*fh)
                     self.ax.plot(
-                        x_coords, y_coords, color='red')
+                        x_coords, y_coords, picker=True, color='red')
         self.canvas.draw()
 
     def img_show(self, img, cmap='viridis', init=False, clear=False):
@@ -242,8 +336,6 @@ class Controller():
             dd.ds.WindowCenter = 200
             dd.ds.WindowWidth = 200
             #del self.dd.frame_label_dict[self.dd.frame_number]
-            self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(self.dd.label_dict_schema)
-            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
 
     def zoom_in(self):
         current_xlim = self.ax.get_xlim()

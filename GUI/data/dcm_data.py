@@ -19,7 +19,8 @@ class DcmData():
         self.frame_label_dict = {}
         self.label_dict_schema = {"line": [], "rectangle": [],
                            "circle": [], "freehand": []}
-        
+        self.label_name = f"Custom label"
+
         self.ds = None
         self.pixel = None
         self.image = None
