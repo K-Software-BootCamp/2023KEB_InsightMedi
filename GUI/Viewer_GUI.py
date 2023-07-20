@@ -115,6 +115,11 @@ class MyWindow(QMainWindow):
         self.is_panning = False
         self.pan_start = None
 
+        cursor_action = QAction(
+            QIcon('icon/cursor_icon.png'), "Selector", self)
+        cursor_action.triggered.connect(self.selector)
+        toolbar.addAction(cursor_action)
+
         # Line action
         straightline_action = QAction(
             QIcon('icon/straightline_icon.png'), "Line", self)
@@ -143,10 +148,15 @@ class MyWindow(QMainWindow):
         freehand_action.triggered.connect(self.draw_freehand)
         toolbar.addAction(freehand_action)
 
-        eraser_action = QAction(
-            QIcon('icon/eraser_icon.png'), "Eraser", self)
-        eraser_action.triggered.connect(self.erase)
-        toolbar.addAction(eraser_action)
+        delete_action = QAction(
+            QIcon('icon/delete_icon.png'), "Delete", self)
+        delete_action.triggered.connect(self.delete)
+        toolbar.addAction(delete_action)
+        
+        delete_all_action = QAction(
+            QIcon('icon/delete_all_icon.png'), "Delete All", self)
+        delete_all_action.triggered.connect(self.delete_all)
+        toolbar.addAction(delete_all_action)
 
         toolbar.addSeparator()  # 구분선
 
@@ -360,6 +370,11 @@ class MyWindow(QMainWindow):
         #         ww = ww_value
         #         self.apply_windowing(ww, wl)
         
+    def selector(self):
+        self.cl.init_selector("selector")
+
+    def delete(self):
+        self.cl.init_selector("delete")
 
     def apply_windowing(self):
         self.cl.init_draw_mode("windowing", self.set_status_bar)
@@ -381,7 +396,7 @@ class MyWindow(QMainWindow):
         # 자유형 그리기 기능 구현
         self.cl.init_draw_mode("freehand")
 
-    def erase(self):
+    def delete_all(self):
         # print("erase")
         reply = QMessageBox.question(self, 'Message', 'Do you erase all?',
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
