@@ -26,6 +26,7 @@ class MyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
+        self.setGeometry(100,100,1280,720)
         # self.setFixedSize(700, 700)
 
         self.main_widget = QWidget()
@@ -48,9 +49,9 @@ class MyWindow(QMainWindow):
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
 
-        for i in range(4):
+        for i in range(10):
             self.label_test_button = QPushButton("label %d test"%i)
-            self.label_test_button.setStyleSheet("color: lightgray;")
+            self.label_test_button.setStyleSheet("color: lightgray; height: 30px;")
             self.label_layout.addWidget(self.label_test_button)
             self.label_buttons = {}
 
@@ -69,12 +70,17 @@ class MyWindow(QMainWindow):
 
         # Layout
         grid_box = QGridLayout(self.main_widget)
-        grid_box.addWidget(self.canvas, 0, 0)
-        grid_box.addWidget(self.slider, 1, 0)
-        grid_box.addWidget(self.play_button, 2, 0)
+        grid_box.setColumnStretch(0, 2)   # column 0 width 2
+        grid_box.setColumnStretch(1, 1)   # column 1 width 1
 
-        grid_box.addWidget(self.frame_scroll_area, 0, 1)
-        grid_box.addWidget(self.label_scroll_area, 1, 1)
+        #column 0
+        grid_box.addWidget(self.canvas, 0, 0, 4, 1)
+        grid_box.addWidget(self.slider, 4, 0)
+        grid_box.addWidget(self.play_button, 5, 0)
+
+        # column 1
+        grid_box.addWidget(self.frame_scroll_area, 0, 1, 3, 1)
+        grid_box.addWidget(self.label_scroll_area, 3, 1, 3, 1)
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
@@ -257,7 +263,7 @@ class MyWindow(QMainWindow):
             #print("현재 GUI에 있는 button 목록:", self.buttons)
             if frame not in self.buttons:
                 button = QPushButton(f"{frame} frame", self)
-                button.setStyleSheet("color: lightgray;")
+                button.setStyleSheet("color: lightgray; height: 30px;")
                 self.buttons[frame] = button
                 button.clicked.connect(partial(self.label_clicked, frame))
             # self.layout.addWidget(label)
