@@ -214,11 +214,6 @@ class MyWindow(QMainWindow):
                 self.slider.valueChanged.connect(self.sliderValueChanged)
                 self.play_button.clicked.connect(self.playButtonClicked)
 
-                # timer start
-                if not self.timer:
-                    self.timer = self.canvas.new_timer(interval=33)  # 30FPS
-                    self.timer.add_callback(self.updateFrame)
-                    self.timer.start()
             else:    # viewer에 호환되지 않는 확장자 파일
                 print("Not accepted file format")
         else:
@@ -262,7 +257,7 @@ class MyWindow(QMainWindow):
         if self.dd.file_mode == "mp4":
             self.dd.frame_number = frame
             self.slider.setValue(frame)
-            self.updateFrame()
+            
         elif self.dd.file_mode == 'dcm':
             #dcm 파일은 frame number 0값의 라벨 버튼이 존재.
             self.cl.label_clicked(frame)
@@ -279,24 +274,37 @@ class MyWindow(QMainWindow):
         print("Save As...")
 
     def sliderValueChanged(self, value):   # 슬라이더로 frame 위치 조정
-        #print("Slider Value : ", value)
-        self.dd.frame_number = value
-        #print("현재 frame: ", self.dd.frame_number)
-        self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
-        self.updateFrame()
+        if not self.timer.isActive():
+            #print("slider value changed 함수 호출")
+            #print("Slider Value : ", value)
+            self.dd.frame_number = value
+            #print("현재 frame: ", self.dd.frame_number)
+            self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
+            self.updateFrame()
+        elif self.timer.isActive() and value != self.dd.frame_number:
+            #print("Slider 클릭함!!!!!!")
+            #print('바뀐 value:', value)
+            self.dd.frame_number = value
+            self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
 
     def playButtonClicked(self):    # 영상 재생 버튼의 함수
+        if not self.timer:    # timer 없으면 새로 생성하고 updateFrame을 callback으로 등록
+            self.timer = self.canvas.new_timer(interval=33)  # 30FPS
+            #self.timer.add_callback(self.updateFrame)
+      
         if not self.timer.isActive():   # 재생 시작
             self.play_button.setText("Pause")
+            self.timer.start()
             self.timer.timeout.connect(self.updateFrame)
             self.timer.start(33)
-        else:
+        else:    # timer가 활성화되면 정지
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
+            self.timer.stop()
             self.dd.frame_number = int(
                 self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
-            self.slider.setValue(self.dd.frame_number)
-            self.timer.stop()
+            #self.slider.setValue(self.dd.frame_number)
+            
 
     def updateFrame(self):    # frame update
         ret, frame = self.dd.video_player.read()
@@ -312,8 +320,11 @@ class MyWindow(QMainWindow):
                 self.cl.label_clicked(self.dd.frame_number)
             
             if self.timer.isActive():
+                #print("재생 중")
                 self.slider.setValue(self.dd.frame_number)
-        print("현재 frame: ", self.dd.frame_number)
+        print("update Frame 호출, 현재 frame: ", self.dd.frame_number)
+    
+
 
         
     # windowing값을 input dialog로 받아 보여주는 코드
