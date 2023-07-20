@@ -48,9 +48,11 @@ class MyWindow(QMainWindow):
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
 
-        self.label_test_button = QPushButton("label1 test")
-        self.label_layout.addWidget(self.label_test_button)
-        self.label_buttons = {}
+        for i in range(4):
+            self.label_test_button = QPushButton("label %d test"%i)
+            self.label_test_button.setStyleSheet("color: lightgray;")
+            self.label_layout.addWidget(self.label_test_button)
+            self.label_buttons = {}
 
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
@@ -62,8 +64,8 @@ class MyWindow(QMainWindow):
         self.frame_scroll_area.setWidgetResizable(True)
 
         self.label_scroll_area = QScrollArea()
-        self.frame_scroll_area.setWidget(self.label_list)
-        self.frame_scroll_area.setWidgetResizable(True)
+        self.label_scroll_area.setWidget(self.label_list)
+        self.label_scroll_area.setWidgetResizable(True)
 
         # Layout
         grid_box = QGridLayout(self.main_widget)
