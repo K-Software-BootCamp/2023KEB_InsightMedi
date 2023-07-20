@@ -19,6 +19,7 @@ class Controller():
 
         # canvas fig 색상 변경
         self.fig.patch.set_facecolor('#303030')
+        self.ax.patch.set_facecolor("#3A3A3A")
         self.ax.tick_params(axis = 'x', colors = 'gray')
         self.ax.tick_params(axis = 'y', colors = 'gray')
 
