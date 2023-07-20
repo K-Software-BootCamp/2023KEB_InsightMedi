@@ -149,10 +149,12 @@ class MyWindow(QMainWindow):
         self.move(center_x, center_y)
 
     def closeEvent(self, event):
+        # mainWindow종료시 할당된 메모리 해제하기
         self.release_resources()
         event.accept()
         
     def release_resources(self):
+        #동영상 플레이어 메모리 해제
         print("release resource")
         if self.dd.video_player:
             self.dd.video_player.release()
@@ -170,8 +172,7 @@ class MyWindow(QMainWindow):
         elif self.dd.file_mode == 'mp4':
             try:
                 # print(wl, ww)
-                self.statusBar().showMessage(f"WL: {self.dd.video_wl} WW:{self.dd.video_ww} "
-                                             f"Frame: {self.dd.frame_number} / {self.dd.total_frame}")
+                self.statusBar().showMessage(f"Frame: {self.dd.frame_number} / {self.dd.total_frame}")
             except AttributeError:
                 self.statusBar().showMessage("")
             
@@ -219,7 +220,7 @@ class MyWindow(QMainWindow):
                     self.timer.add_callback(self.updateFrame)
                     self.timer.start()
             else:    # viewer에 호환되지 않는 확장자 파일
-                pass
+                print("Not accepted file format")
         else:
             print("Open fail")
 
@@ -236,6 +237,7 @@ class MyWindow(QMainWindow):
                 self.label_layout.addWidget(button)
 
     def delete_total_label(self):
+        #label이동 버튼들 전부 제거하기
         while self.label_layout.count():
             item = self.label_layout.takeAt(0)
             widget = item.widget()
@@ -244,6 +246,7 @@ class MyWindow(QMainWindow):
         self.label_layout.update()
     
     def delete_label(self, frame):
+        #특정 frame이동 버튼 제거하기
         if frame in self.buttons:
             button_to_remove = self.buttons[frame]
             self.label_layout.removeWidget(button_to_remove)
@@ -252,13 +255,17 @@ class MyWindow(QMainWindow):
             print(f"{frame} 프레임에 대한 버튼 제거됨")
         else:
             print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
+        self.label_layout.update()
 
     def label_clicked(self, frame):
-        if self.dd.file_extension == "mp4":
+        #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
+        if self.dd.file_mode == "mp4":
             self.dd.frame_number = frame
             self.slider.setValue(frame)
             self.updateFrame()
-        #self.cl.label_clicked(frame)
+        elif self.dd.file_mode == 'dcm':
+            #dcm 파일은 frame number 0값의 라벨 버튼이 존재.
+            self.cl.label_clicked(frame)
 
     def save(self):
         # 저장 기능 구현
@@ -294,22 +301,22 @@ class MyWindow(QMainWindow):
     def updateFrame(self):    # frame update
         ret, frame = self.dd.video_player.read()
         if ret:
-            self.dd.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            f = self.cl.frame_apply_windowing(self.dd, self.dd.image)
-            self.set_status_bar()
-            self.cl.img_show(f, clear=True)
+            self.dd.frame_number = int(
+                    self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
+            self.set_status_bar()  # frame 상태창 변경
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.cl.img_show(rgb_frame, clear=True)
 
+            #frame에 라벨이 존재하면 라벨을 보여줍니다.
             if self.dd.frame_number in self.dd.frame_label_dict:
                 self.cl.label_clicked(self.dd.frame_number)
             
             if self.timer.isActive():
-                self.dd.frame_number = int(
-                    self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
                 self.slider.setValue(self.dd.frame_number)
-        
         print("현재 frame: ", self.dd.frame_number)
-        
 
+        
+    # windowing값을 input dialog로 받아 보여주는 코드
     # def windowing_input_dialog(self):
         # Windowing 값 입력하는 input dialog
         # windowing_dialog = InputDialog()

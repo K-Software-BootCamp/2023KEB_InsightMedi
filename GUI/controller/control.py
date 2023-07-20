@@ -69,9 +69,9 @@ class Controller():
                 dx = self.end[0] - self.start[0]
                 dy = self.end[1] - self.start[1]
 
-                if dd.file_mode == 'mp4':
-                    self.mp4_windowing_change(dd, dx, dy)
-                elif dd.file_mode == 'dcm':
+                # if dd.file_mode == 'mp4':
+                #     self.mp4_windowing_change(dd, dx, dy)
+                if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
                 else:
                     print("Unexpected file format")
@@ -200,25 +200,27 @@ class Controller():
             print("초기화된 frame_label_dict", self.dd.frame_label_dict)
 
     def mp4_windowing_change(self, dd: DcmData, dx: float, dy: float):
+        pass
         
         # print(type(frame)) : ndarray
         # print(frame.shape) : (720, 1280, 3)
         # print(b, g, r)
-        dd.video_wl = round(dd.video_wl + dx, 2)
-        dd.video_ww = round(dd.video_ww - dy, 2)
-        print(dd.video_wl, dd.video_ww)
-        # cv2.convertScaleAbs(frame, frame, alpha=(255.0 / dd.video_ww), beta=(dd.video_wl - dd.video_ww / 2))
-        frame = self.frame_apply_windowing(dd, dd.image)
-        self.func()
-        # print(type(frame))
-        self.img_show(frame, clear=True)
+        # dd.video_wl = round(dd.video_wl + dx, 2)
+        # dd.video_ww = round(dd.video_ww - dy, 2)
+        # print(dd.video_wl, dd.video_ww)
+        # # cv2.convertScaleAbs(frame, frame, alpha=(255.0 / dd.video_ww), beta=(dd.video_wl - dd.video_ww / 2))
+        # frame = self.frame_apply_windowing(dd, dd.image)
+        # self.func()
+        # # print(type(frame))
+        # self.img_show(frame, clear=True)
 
     def frame_apply_windowing(self, dd, frame):
-        b, g, r = cv2.split(frame)
-        r = cv2.convertScaleAbs(r, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        g = cv2.convertScaleAbs(g, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        b = cv2.convertScaleAbs(b, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        return cv2.merge((b, g, r))
+        pass
+        # b, g, r = cv2.split(frame)
+        # r = cv2.convertScaleAbs(r, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
+        # g = cv2.convertScaleAbs(g, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
+        # b = cv2.convertScaleAbs(b, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
+        # return cv2.merge((b, g, r))
         
     def dcm_windowing_change(self, dd, dx, dy):
         """
