@@ -424,10 +424,10 @@ class MyWindow(QMainWindow):
             print(self.dd.frame_label_dict)
 
     def zoom_in(self):
-        self.cl.initie_zoom_mode("in")
+        self.cl.init_zoom_mode("in")
 
     def zoom_out(self):
-        self.cl.initie_zoom_mode("out")
+        self.cl.init_zoom_mode("out")
 
 
 if __name__ == "__main__":

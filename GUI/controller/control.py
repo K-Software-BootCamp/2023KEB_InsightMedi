@@ -41,10 +41,11 @@ class Controller():
         
     def draw_annotation(self):
         if self.start and self.end and self.selector_mode == 'Drawing':
-            if self.annotation and self.is_drawing is True:
+            if self.annotation:
                 #연속적인 라벨의 그림을 보여주기 위해 이전 annotation을 제거해줍니다.
                 if self.annotation_mode == 'freehand':
-                    self.annotation.clear()
+                    # print(dir(self.annotation))
+                    self.annotation[0].remove()
                 else:
                     self.annotation.remove()
 
@@ -125,7 +126,7 @@ class Controller():
             self.set_mpl_connect(self.on_mouse_press,
                                  self.on_mouse_move, self.on_mouse_release)
 
-    def initie_zoom_mode(self, mode):
+    def init_zoom_mode(self, mode):
         self.set_mpl_disconnect()
         cid4 = self.canvas.mpl_connect('button_press_event', self.on_pan_mouse_press)
         cid5 = self.canvas.mpl_connect('motion_notify_event', self.on_pan_mouse_move)
@@ -147,11 +148,12 @@ class Controller():
             #     self.artist.remove()
             #     self.canvas.draw()
             self.selector_mode = 'selector'
-            self.annotation_mode = 'delete'
+            self.annotation_mode = mode
             cid4 = self.canvas.mpl_connect('key_press_event', self.selector_key_on_press)
             self.cid.append(cid4)
         elif mode == 'selector':
             self.selector_mode = mode
+            self.annotation_mode = None
         self.change_status_bar()
         
         cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
@@ -168,25 +170,29 @@ class Controller():
         if self.artist is not None and event.artist != self.artist:
             self.selector_change_color("red")
 
-        if self.selector_mode == 'delete':
-            try:
-                event.artist.remove()
-                #label button과 frame_label_dict에서 해당 라벨 삭제
-                # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_class].delete()
-                # self.dd.delete_label_file
-            except AttributeError:
-                pass
-        elif self.selector_mode == 'selector':
+        if self.selector_mode == 'selector':
             #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
             self.artist = event.artist
             self.selector_change_color("blue")
             # print(dir(self.artist))  
             print(f"label name : {self.artist.get_label()}")
+            if self.annotation_mode == 'delete':
+                try:
+                    self.artist = event.artist
+                    self.artist.remove()
+                    self.artist = None
+                    #label button과 frame_label_dict에서 해당 라벨 삭제
+                    # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_class].delete()
+                    # self.dd.delete_label_file
+                except AttributeError as e:
+                    print(e)
         self.canvas.draw()
     
     def selector_on_press(self, event):
         """ 라벨들 선택하면 self.press에 x,y 데이터 저장하는 기능입니다. """
-        if self.artist is None and event.inaxes != self.artist.axes:
+        if self.artist is None:
+            return
+        if event.inaxes != self.artist.axes:
             return
         contains, attrd = self.artist.contains(event)
         if not contains:
@@ -200,30 +206,31 @@ class Controller():
         
         elif isinstance(self.artist, Circle):
             xdata, ydata = self.artist.get_center()
+        else:
+            return
         
         self.press = (xdata, ydata), (event.xdata, event.ydata)
         print(self.press)
 
     def selector_on_move(self, event):
         """마우스로 드래그하면 self.artist를 움직일 수 있게 합니다."""
-        try:
-            if self.press is None or event.inaxes != self.artist.axes:
-                return
-        except AttributeError:
+
+        if self.press is None:
             return
+
         (x0, y0), (xpress, ypress) = self.press
         dx = event.xdata - xpress
         dy = event.ydata - ypress
         if isinstance(self.artist, Line2D):
-            self.artist.set_xdata(x0+dx)
-            self.artist.set_ydata(y0+dy)
+            self.artist.set_xdata(x0 + dx)
+            self.artist.set_ydata(y0 + dy)
         elif isinstance(self.artist, Rectangle):
             # print(f'x0={x0}, xpress={xpress}, event.xdata={event.xdata}, '
             #       f'dx={dx}, x0+dx={x0+dx}')
-            self.artist.set_x(x0+dx)
-            self.artist.set_y(y0+dy)
+            self.artist.set_x(x0 + dx)
+            self.artist.set_y(y0 + dy)
         elif isinstance(self.artist, Circle):
-            self.artist.set_center((x0+dx, y0+dy))
+            self.artist.set_center((x0 + dx, y0 + dy))
 
         self.canvas.draw()
 
@@ -258,6 +265,7 @@ class Controller():
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
             self.draw_annotation()
+            self.annotation = None
 
     def on_freehand_mouse_move(self, event):
         if self.is_drawing:
