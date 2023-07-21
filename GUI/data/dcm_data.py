@@ -16,10 +16,10 @@ class DcmData():
         self.file_mode = None  #file_mode가 'dcm'이면 dcm또는 DCM파일. file_mode가 'mp4' mp4파일을 가리킵니다.
 
         self.label_dir = None
-        self.frame_label_dict = {}
+        self.frame_label_dict = {} #{ "frame" : { "label_class" : {label_dict_schema}, }, }
         self.label_dict_schema = {"line": [], "rectangle": [],
                            "circle": [], "freehand": []}
-        self.label_name = f"Custom label"
+        self.label_class = f"Custom label"
 
         self.ds = None
         self.pixel = None

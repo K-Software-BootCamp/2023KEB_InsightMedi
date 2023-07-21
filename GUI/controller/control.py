@@ -39,12 +39,14 @@ class Controller():
         
     def draw_annotation(self):
         if self.start and self.end and self.is_drawing == False:
-            label_name = self.dd.label_name
+            label_class = self.dd.label_class
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
-                self.ax.plot(x, y, picker=True, label=label_name, color='red')[0]
+                self.ax.plot(x, y, picker=True, label=label_class, color='red')[0]
+                self.canvas.draw()
                 self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
+
 
             elif self.annotation_mode == "rectangle":
                 width = abs(self.start[0] - self.end[0])
@@ -52,7 +54,8 @@ class Controller():
                 x = min(self.start[0], self.end[0])
                 y = min(self.start[1], self.end[1])
                 self.ax.add_patch(
-                    Rectangle((x, y), width, height,  fill=False, picker=True, label=label_name, edgecolor='red') )
+                    Rectangle((x, y), width, height, fill=False, picker=True, label=label_class, edgecolor='red') )
+                self.canvas.draw()
                 self.dd.add_label("rectangle", (x, y, width, height))
 
             elif self.annotation_mode == "circle":
@@ -61,13 +64,13 @@ class Controller():
                 center = self.start
                 radius = np.sqrt(dx ** 2 + dy ** 2)
                 self.ax.add_patch(
-                    Circle(center, radius, fill=False, picker=True, label=label_name, edgecolor='red'))
+                    Circle(center, radius, fill=False, picker=True, label=label_class, edgecolor='red'))
                 self.dd.add_label("circle", (center, radius))
 
             elif self.annotation_mode == "freehand":
                 if self.points:
                     x, y = zip(*self.points)
-                    self.ax.plot(x, y, picker=True, label=label_name, color='red')
+                    self.ax.plot(x, y, picker=True, label=label_class, color='red')
                     self.end = None
                     self.dd.add_label("freehand", self.points)
 
@@ -81,7 +84,7 @@ class Controller():
                 if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
 
-            self.canvas.draw()
+            
 
     def set_mpl_connect(self, *args):
         """다음순서로 args받아야 합니다. button_press_event, motion_notify_event, button_release_event"""
@@ -148,19 +151,19 @@ class Controller():
         print(dir(event))
         #기존의 선택된 artist의 색깔을 원상태인 빨간색으로 바꿔줍니다.
         if event.artist != self.artist:
-                try:
-                    if isinstance(self.artist, Line2D):
-                        self.artist.set_color('red')
-                    else:
-                        self.artist.set_edgecolor('red')
-                except AttributeError:
-                    pass
+            try:
+                if isinstance(self.artist, Line2D):
+                    self.artist.set_color('red')
+                else:
+                    self.artist.set_edgecolor('red')
+            except AttributeError:
+                pass
 
         if self.selector_mode == 'delete':
             try:
                 event.artist.remove()
                 #label button과 frame_label_dict에서 해당 라벨 삭제
-                # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_name].delete()
+                # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_class].delete()
                 # self.dd.delete_label_file
             except AttributeError:
                 pass
