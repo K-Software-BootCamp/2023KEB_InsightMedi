@@ -16,10 +16,11 @@ class DcmData():
         self.file_mode = None  #file_mode가 'dcm'이면 dcm또는 DCM파일. file_mode가 'mp4' mp4파일을 가리킵니다.
 
         self.label_dir = None
-        self.frame_label_dict = {} #{ "frame" : { "label_class" : {label_dict_schema}, }, }
-        self.label_dict_schema = {"line": [], "rectangle": [],
-                           "circle": [], "freehand": []}
-        self.label_class = f"Custom label"
+        self.frame_label_dict = {}
+        self.label_dict_schema = {"line": {}, "rectangle": {},
+                           "circle": {}, "freehand": {}}  
+        self.label_id = 0
+        self.label_name = f"label {self.label_id}"
 
         self.ds = None
         self.pixel = None
@@ -58,18 +59,19 @@ class DcmData():
         for file_name in sorted(os.listdir(self.label_dir)):
             print(file_name)
             frame_number = int(file_name.split(".")[0])
-            label_dict = {}
+            frame_dict = {}
             if file_name.endswith('.txt'):
                 try:
                     filepath = os.path.join(self.label_dir, file_name)
                     with open(filepath, "r") as f:
                         t = json.load(f)
                         for key in t:
-                            label_dict[key] = t[key]
-                        self.frame_label_dict[frame_number] = label_dict
+                            frame_dict[key] = t[key]
+                        self.frame_label_dict[frame_number] = frame_dict
                 except FileNotFoundError:
                     pass
-    
+        print("load된 frame_label_dict:",self.frame_label_dict)
+            
     def save_label(self):
         for key in self.frame_label_dict:
             with open(f"{self.label_dir}/{key}.txt", 'w') as f:
@@ -85,9 +87,23 @@ class DcmData():
             ld =  self.frame_label_dict[self.frame_number]
             print("새로운 frame에 label을 그렸을 때 text파일에 들어갈 정보 틀 생성")
 
-        ld[key].append(value)
-        print("확인",ld)
-        print("현재 framenumber", self.frame_number)
+        label_dict = ld[key]
+        self.label_name = f"label {self.label_id}"
+
+        for l in label_dict:
+            if l == self.label_name:
+                print("이미 현재 label을 이름으로 갖고 있음.")
+                self.label_id += 1
+                self.label_name = f"label {self.label_id}"
+        
+        print(self.label_name)
+        print(label_dict)
+
+        label_dict[self.label_name] = value
+        self.label_id += 1
+        #ld[key].append(label_dict)
+        #print("확인",ld)
+        #print("현재 framenumber", self.frame_number)
         
     def open_dcm_file(self, fname):
         self.ds = dcmread(fname[0])
