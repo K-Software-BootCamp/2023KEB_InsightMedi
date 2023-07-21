@@ -11,7 +11,7 @@ from data.dcm_data import DcmData
 
 
 class Controller():
-    def __init__(self, dd: DcmData, canvas: FigureCanvas) -> None:
+    def __init__(self, dd: DcmData, canvas: FigureCanvas, set_status_bar) -> None:
         self.canvas = canvas
         self.dd = dd
         self.fig = canvas.figure
@@ -34,7 +34,7 @@ class Controller():
         self.is_drawing = False
         self.is_panning = False
         self.pan_Start = None
-        self.change_status_bar = None
+        self.change_status_bar = set_status_bar
 
         self.press=None
         self.artist = None
@@ -49,7 +49,7 @@ class Controller():
                 else:
                     self.annotation.remove()
 
-            label_class = "custom label"
+            label_class = self.dd.label_name
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
@@ -356,12 +356,12 @@ class Controller():
         
     def dcm_windowing_change(self, dd, dx, dy):
         """
-        windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.
+        windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.  
         windwow width는 y값에 대해 변경되므로 마우스 상하로 변경됩니다.
         """
         try:
-            dd.ds.WindowCenter = round(dd.ds.WindowCenter + dx, 2)
-            dd.ds.WindowWidth = round(dd.ds.WindowWidth - dy, 2)
+            dd.ds.WindowCenter = round(dd.ds.WindowCenter + 10 * dx/dd.image.shape[0], 2)
+            dd.ds.WindowWidth = round(dd.ds.WindowWidth - 10 * dy/dd.image.shape[1], 2)
             # print(wl, ww)
             modality_lut_image = apply_modality_lut(dd.image, dd.ds)
             voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
@@ -371,8 +371,8 @@ class Controller():
             self.change_status_bar()
             self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
         except AttributeError:
-            dd.ds.WindowCenter = 200
-            dd.ds.WindowWidth = 200
+            dd.ds.WindowCenter = 256
+            dd.ds.WindowWidth = 256
             #del self.dd.frame_label_dict[self.dd.frame_number]
 
     def zoom_in(self):

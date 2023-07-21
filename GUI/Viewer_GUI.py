@@ -89,7 +89,7 @@ class MyWindow(QMainWindow):
         self.statusBar().showMessage("")
 
         #Create Controller
-        self.cl = Controller(self.dd, self.canvas)
+        self.cl = Controller(self.dd, self.canvas, self.set_status_bar)
         '''
         파일 도구
         '''
@@ -214,7 +214,7 @@ class MyWindow(QMainWindow):
                 vs = self.video_status
                 self.statusBar().showMessage(f"Video Stauts: {vs} "
                                             f"Frame: {self.dd.frame_number} / {self.dd.total_frame} " + smam)
-        except AttributeError:
+        except (AttributeError, TypeError):
             self.statusBar().showMessage(smam)
             
     def open_file(self):
@@ -222,9 +222,11 @@ class MyWindow(QMainWindow):
         self.canvas.figure.clear()
         self.release_resources()
         
+        self.setCursor(Qt.ArrowCursor)
         options = QFileDialog.Options()
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
+        
         if fname[0]:
             # 파일 열기
             dd = self.dd
@@ -235,7 +237,6 @@ class MyWindow(QMainWindow):
             self.slider.setValue(0)    # slider value 초기화
             self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
             self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
-            self.cl.change_status_bar = self.set_status_bar
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -298,6 +299,7 @@ class MyWindow(QMainWindow):
 
     def label_clicked(self, frame):
         #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
+        self.setCursor(Qt.ArrowCursor)
         if self.dd.file_mode == "mp4":
             self.dd.frame_number = frame
             self.slider.setValue(frame)
@@ -332,6 +334,7 @@ class MyWindow(QMainWindow):
             self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
 
     def playButtonClicked(self):    # 영상 재생 버튼의 함수
+        self.setCursor(Qt.ArrowCursor)
         if not self.timer:    # timer 없으면 새로 생성하고 updateFrame을 callback으로 등록
             self.timer = self.canvas.new_timer(interval=33)  # 30FPS
             #self.timer.add_callback(self.updateFrame)
@@ -387,21 +390,27 @@ class MyWindow(QMainWindow):
         #         self.apply_windowing(ww, wl)
         
     def selector(self):
+        self.setCursor(Qt.ArrowCursor)
         self.cl.init_selector("selector")
 
     def delete(self):
+        self.setCursor(Qt.PointingHandCursor)
         self.cl.init_selector("delete")
 
     def apply_windowing(self):
+        self.setCursor(Qt.OpenHandCursor)
         self.cl.init_draw_mode("windowing")
 
     def draw_straight_line(self):
+        self.setCursor(Qt.CrossCursor)
         self.cl.init_draw_mode("line")
 
     def draw_circle(self):
+        self.setCursor(Qt.CrossCursor)
         self.cl.init_draw_mode("circle")
 
     def draw_rectangle(self):
+        self.setCursor(Qt.CrossCursor)
         self.cl.init_draw_mode("rectangle")
 
     def draw_curve(self):
@@ -410,9 +419,11 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self):
         # 자유형 그리기 기능 구현
+        self.setCursor(Qt.CrossCursor)
         self.cl.init_draw_mode("freehand")
 
     def delete_all(self):
+        self.setCursor(Qt.ArrowCursor)
         # print("erase")
         reply = QMessageBox.question(self, 'Message', 'Do you erase all?',
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
