@@ -271,7 +271,6 @@ class MyWindow(QMainWindow):
 
     def delete_total_label(self):
         #frame 이동 버튼들 전부 제거하기
-        print(self.frame_scroll_area)
         while self.frame_layout.count():
             item = self.frame_layout.takeAt(0)
             widget = item.widget()

@@ -249,21 +249,27 @@ class Controller():
         ld = self.dd.frame_label_dict[frame]
         if ld["line"]:
             line = ld["line"]
-            for coor in line:
+            for label in line:
+                coor = line[label]
                 self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, color='red')
+        
         if ld["rectangle"]:
             rec = ld["rectangle"]
-            for coor in rec:
+            for label in rec:
+                coor = rec[label]
                 self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
                                             picker=True, edgecolor='red'))
         if ld["circle"]:
             cir = ld["circle"]
             for coor in cir:
+                coor = cir[label]
                 self.ax.add_patch(
                     Circle(coor[0], coor[1], fill=False, picker=True, edgecolor='red'))
+        
         if ld["freehand"]:
             freehand = ld["freehand"]
-            for fh in freehand:
+            for label in freehand:
+                fh = freehand[label]
                 for coor in fh:
                     x_coords, y_coords = zip(*fh)
                     self.ax.plot(
