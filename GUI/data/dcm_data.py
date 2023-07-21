@@ -96,12 +96,11 @@ class DcmData():
                 self.label_id += 1
                 self.label_name = f"label {self.label_id}"
         
-        print(self.label_name)
-
+        # frame_label_dict에 label data 저장
         new_label_dict_schema = copy.deepcopy(self.label_dict_schema)
         new_label_dict_schema[key] = value
         label_dict[self.label_name] = new_label_dict_schema
-        
+
         print("labeel 그려진 이후 frame_label_dict", self.frame_label_dict)
         self.label_id += 1
         #ld[key].append(label_dict)
