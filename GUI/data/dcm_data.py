@@ -17,8 +17,8 @@ class DcmData():
 
         self.label_dir = None
         self.frame_label_dict = {}
-        self.label_dict_schema = {"line": {}, "rectangle": {},
-                           "circle": {}, "freehand": {}}  
+        self.label_dict_schema = {"line": None, "rectangle": None,
+                           "circle": None, "freehand": None}  
         self.label_id = 0
         self.label_name = f"label {self.label_id}"
 
@@ -80,26 +80,28 @@ class DcmData():
     def add_label(self, key, value):    #key: label_type / value: 좌표
         #print("전체 frame별 label dictionary", self.frame_label_dict)
         try:
-            ld = self.frame_label_dict[self.frame_number]
+            label_dict = self.frame_label_dict[self.frame_number]
+            print("현재 frame에 있는 label들", label_dict)
         except KeyError:
-            new_label_dict_schema = copy.deepcopy(self.label_dict_schema)
-            self.frame_label_dict[self.frame_number] = new_label_dict_schema
-            ld =  self.frame_label_dict[self.frame_number]
+            self.frame_label_dict[self.frame_number] = {}
+            label_dict =  self.frame_label_dict[self.frame_number]
             print("새로운 frame에 label을 그렸을 때 text파일에 들어갈 정보 틀 생성")
 
-        label_dict = ld[key]
+        
         self.label_name = f"label {self.label_id}"
-
-        for l in label_dict:
-            if l == self.label_name:
+        
+        for name in label_dict:
+            if name == self.label_name:
                 print("이미 현재 label을 이름으로 갖고 있음.")
                 self.label_id += 1
                 self.label_name = f"label {self.label_id}"
         
-        print(self.label_name)
-        print(label_dict)
+        # frame_label_dict에 label data 저장
+        new_label_dict_schema = copy.deepcopy(self.label_dict_schema)
+        new_label_dict_schema[key] = value
+        label_dict[self.label_name] = new_label_dict_schema
 
-        label_dict[self.label_name] = value
+        print("labeel 그려진 이후 frame_label_dict", self.frame_label_dict)
         self.label_id += 1
         #ld[key].append(label_dict)
         #print("확인",ld)
