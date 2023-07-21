@@ -24,6 +24,7 @@ class Controller():
         self.ax.tick_params(axis = 'y', colors = 'gray')
 
         self.annotation_mode = None
+        self.annotation = None
         self.selector_mode = None
         self.cid = []
 
@@ -33,45 +34,53 @@ class Controller():
         self.is_drawing = False
         self.is_panning = False
         self.pan_Start = None
+        self.change_status_bar = None
 
         self.press=None
         self.artist = None
         
     def draw_annotation(self):
-        if self.start and self.end and self.is_drawing == False:
-            label_class = self.dd.label_class
+        if self.start and self.end and self.selector_mode == 'Drawing':
+            if self.annotation and self.is_drawing is True:
+                #연속적인 라벨의 그림을 보여주기 위해 이전 annotation을 제거해줍니다.
+                if self.annotation_mode == 'freehand':
+                    self.annotation.clear()
+                else:
+                    self.annotation.remove()
+
+            label_class = "custom label"
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
-                self.ax.plot(x, y, picker=True, label=label_class, color='red')[0]
-                self.canvas.draw()
-                self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
-
+                self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color='red')[0]
+                if self.is_drawing is False:
+                    self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
 
             elif self.annotation_mode == "rectangle":
                 width = abs(self.start[0] - self.end[0])
                 height = abs(self.start[1] - self.end[1])
                 x = min(self.start[0], self.end[0])
                 y = min(self.start[1], self.end[1])
-                self.ax.add_patch(
+                self.annotation = self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, picker=True, label=label_class, edgecolor='red') )
-                self.canvas.draw()
-                self.dd.add_label("rectangle", (x, y, width, height))
+                if self.is_drawing is False:
+                    self.dd.add_label("rectangle", (x, y, width, height))
 
             elif self.annotation_mode == "circle":
                 dx = self.end[0] - self.start[0]
                 dy = self.end[1] - self.start[1]
                 center = self.start
                 radius = np.sqrt(dx ** 2 + dy ** 2)
-                self.ax.add_patch(
+                self.annotation = self.ax.add_patch(
                     Circle(center, radius, fill=False, picker=True, label=label_class, edgecolor='red'))
-                self.dd.add_label("circle", (center, radius))
+                if self.is_drawing is False:
+                    self.dd.add_label("circle", (center, radius))
 
             elif self.annotation_mode == "freehand":
-                if self.points:
-                    x, y = zip(*self.points)
-                    self.ax.plot(x, y, picker=True, label=label_class, color='red')
-                    self.end = None
+                x, y = zip(*self.points)
+                self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color='red')
+                if self.is_drawing is False:
+                    self.points = []
                     self.dd.add_label("freehand", self.points)
 
             elif self.annotation_mode == "windowing":
@@ -83,8 +92,7 @@ class Controller():
                 #     self.mp4_windowing_change(dd, dx, dy)
                 if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
-
-            
+            self.canvas.draw()
 
     def set_mpl_connect(self, *args):
         """다음순서로 args받아야 합니다. button_press_event, motion_notify_event, button_release_event"""
@@ -95,7 +103,6 @@ class Controller():
 
 
     def set_mpl_disconnect(self):
-        self.func = None
         self.press = None
         if self.cid:
             for cid in self.cid:
@@ -106,6 +113,9 @@ class Controller():
         self.start = None
         self.end = None
         self.is_drawing = False
+        self.annotation = None
+        self.selector_mode = "Drawing"
+        self.change_status_bar()
         self.set_mpl_disconnect()
         if self.annotation_mode == "freehand":
             self.points = []
@@ -122,42 +132,41 @@ class Controller():
         cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
         self.cid = [cid4, cid5, cid6]
 
-    def init_draw_mode(self, mode, func=None):
+    def init_draw_mode(self, mode):
         # 직선 그리기 기능 구현
         print(mode)
         self.annotation_mode = mode
         self.draw_init()
-        if func:
-            self.func = func
+        # status bar변경하는 함수 포인터를 Vierwer_Gui로부터 받아오기
 
     def init_selector(self, mode):
         self.set_mpl_disconnect()
-        self.selector_mode = mode
         if mode =="delete":
             # if self.artist:
             #     #선택된 artist가 있고 버튼을 누르면 지웁니다.
             #     self.artist.remove()
             #     self.canvas.draw()
+            self.selector_mode = 'selector'
+            self.annotation_mode = 'delete'
             cid4 = self.canvas.mpl_connect('key_press_event', self.selector_key_on_press)
             self.cid.append(cid4)
+        elif mode == 'selector':
+            self.selector_mode = mode
+        self.change_status_bar()
+        
         cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
         cid1 = self.canvas.mpl_connect('button_press_event', self.selector_on_press)
         cid2 = self.canvas.mpl_connect('motion_notify_event', self.selector_on_move)
         cid3 = self.canvas.mpl_connect('button_release_event', self.selector_on_release)
-        self.cid.extend([cid1, cid2, cid3])
-        print(self.cid)
+        
+        self.cid.extend([cid0, cid1, cid2, cid3])
+        # print(self.cid)
     
     def selector_on_pick(self, event):
-        print(dir(event))
+        # print(dir(event))
         #기존의 선택된 artist의 색깔을 원상태인 빨간색으로 바꿔줍니다.
-        if event.artist != self.artist:
-            try:
-                if isinstance(self.artist, Line2D):
-                    self.artist.set_color('red')
-                else:
-                    self.artist.set_edgecolor('red')
-            except AttributeError:
-                pass
+        if self.artist is not None and event.artist != self.artist:
+            self.selector_change_color("red")
 
         if self.selector_mode == 'delete':
             try:
@@ -170,59 +179,70 @@ class Controller():
         elif self.selector_mode == 'selector':
             #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
             self.artist = event.artist
-            
-            # print(dir(self.artist))         
-            if isinstance(self.artist, Line2D):
-                print("Line select")
-                self.artist.set_color('blue')
-            else:
-                self.artist.set_edgecolor('blue')
-            print(self.press)
+            self.selector_change_color("blue")
+            # print(dir(self.artist))  
             print(f"label name : {self.artist.get_label()}")
         self.canvas.draw()
     
     def selector_on_press(self, event):
-        if event.inaxes != self.artist.axes:
+        """ 라벨들 선택하면 self.press에 x,y 데이터 저장하는 기능입니다. """
+        if self.artist is None and event.inaxes != self.artist.axes:
             return
         contains, attrd = self.artist.contains(event)
         if not contains:
             return
-        print('event contains', self.artist.xy)
-        self.press = self.artist.xy, (event.xdata, event.ydata)
+        if isinstance(self.artist, Line2D):
+            xdata= self.artist.get_xdata()
+            ydata= self.artist.get_ydata()
+            
+        elif isinstance(self.artist, Rectangle):
+            xdata, ydata = self.artist.xy
+        
+        elif isinstance(self.artist, Circle):
+            xdata, ydata = self.artist.get_center()
+        
+        self.press = (xdata, ydata), (event.xdata, event.ydata)
         print(self.press)
-        # print(dir(event))
 
     def selector_on_move(self, event):
-        """Move the rectangle if the mouse is over us."""
+        """마우스로 드래그하면 self.artist를 움직일 수 있게 합니다."""
         try:
             if self.press is None or event.inaxes != self.artist.axes:
                 return
         except AttributeError:
             return
+        (x0, y0), (xpress, ypress) = self.press
+        dx = event.xdata - xpress
+        dy = event.ydata - ypress
         if isinstance(self.artist, Line2D):
-            pass
-
+            self.artist.set_xdata(x0+dx)
+            self.artist.set_ydata(y0+dy)
         elif isinstance(self.artist, Rectangle):
-            (x0, y0), (xpress, ypress) = self.press
-            dx = event.xdata - xpress
-            dy = event.ydata - ypress
             # print(f'x0={x0}, xpress={xpress}, event.xdata={event.xdata}, '
             #       f'dx={dx}, x0+dx={x0+dx}')
             self.artist.set_x(x0+dx)
             self.artist.set_y(y0+dy)
+        elif isinstance(self.artist, Circle):
+            self.artist.set_center((x0+dx, y0+dy))
+
         self.canvas.draw()
 
     def selector_on_release(self, event):
         self.press = None
         self.canvas.draw()
 
-
     def selector_key_on_press(self, event):
         print(event)
-        if event == "delete":
+        print(dir(event))
+        if event.key == "delete":
             print("delete press")
 
-        
+    def selector_change_color(self, color):
+        if isinstance(self.artist, Line2D):
+            self.artist.set_color(color)
+        else:
+            self.artist.set_edgecolor(color)
+
     def on_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
@@ -314,7 +334,7 @@ class Controller():
         # print(dd.video_wl, dd.video_ww)
         # # cv2.convertScaleAbs(frame, frame, alpha=(255.0 / dd.video_ww), beta=(dd.video_wl - dd.video_ww / 2))
         # frame = self.frame_apply_windowing(dd, dd.image)
-        # self.func()
+        # self.change_status_bar()
         # # print(type(frame))
         # self.img_show(frame, clear=True)
 
@@ -340,7 +360,7 @@ class Controller():
             # comparison = voi_lut_image == self.image
             # mismatch_count = np.count_nonzero(comparison == False)
             # print(mismatch_count)
-            self.func()
+            self.change_status_bar()
             self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
         except AttributeError:
             dd.ds.WindowCenter = 200

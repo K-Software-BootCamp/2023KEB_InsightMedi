@@ -58,6 +58,7 @@ class MyWindow(QMainWindow):
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
         self.play_button.setStyleSheet("color: lightgray;")
+        self.video_status = None
 
         # Frame list scroll area
         self.frame_scroll_area = QScrollArea()
@@ -195,29 +196,32 @@ class MyWindow(QMainWindow):
         #동영상 플레이어 메모리 해제
         print("release resource")
         if self.dd.video_player:
+            self.video_status = None
             self.dd.video_player.release()
 
     def set_status_bar(self):
         # print(self.dd.ds)
-        if self.dd.file_mode == 'dcm':
-            try:
+        sm = self.cl.selector_mode
+        am = self.cl.annotation_mode
+        smam = f"Tool Status : {sm}:{am}" if am else f"Tool Status : {sm}"
+        try:
+            if self.dd.file_mode == 'dcm':
                 wl = self.dd.ds.WindowCenter
                 ww = self.dd.ds.WindowWidth
                 # print(wl, ww)
-                self.statusBar().showMessage(f"WL: {wl} WW:{ww}")
-            except AttributeError:
-                self.statusBar().showMessage("")
-        elif self.dd.file_mode == 'mp4':
-            try:
-                # print(wl, ww)
-                self.statusBar().showMessage(f"Frame: {self.dd.frame_number} / {self.dd.total_frame}")
-            except AttributeError:
-                self.statusBar().showMessage("")
+                self.statusBar().showMessage(f"WL: {wl} WW:{ww} " + smam)
+            elif self.dd.file_mode == 'mp4':
+                vs = self.video_status
+                self.statusBar().showMessage(f"Video Stauts: {vs} "
+                                            f"Frame: {self.dd.frame_number} / {self.dd.total_frame} " + smam)
+        except AttributeError:
+            self.statusBar().showMessage(smam)
             
     def open_file(self):
         # 파일 열기 기능 구현
         self.canvas.figure.clear()
         self.release_resources()
+        
         options = QFileDialog.Options()
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
@@ -225,13 +229,13 @@ class MyWindow(QMainWindow):
             # 파일 열기
             dd = self.dd
             dd.open_file(fname)
-
             # viewer 설정 초기화
-            self.set_status_bar()    # 현재 windwoing 상태 초기화
+            
             self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
             self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
             self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
+            self.cl.change_status_bar = self.set_status_bar
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -243,7 +247,7 @@ class MyWindow(QMainWindow):
 
                 print(dd.total_frame)
                 self.slider.setMaximum(dd.total_frame - 1)
-
+                self.video_status = "Ready"
                 # 눈금 설정
                 self.slider.setTickPosition(
                     QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
@@ -254,6 +258,8 @@ class MyWindow(QMainWindow):
 
             else:    # viewer에 호환되지 않는 확장자 파일
                 print("Not accepted file format")
+
+            self.set_status_bar()    # 현재 windwoing 상태 초기화
         else:
             print("Open fail")
 
@@ -332,12 +338,15 @@ class MyWindow(QMainWindow):
       
         if not self.timer.isActive():   # 재생 시작
             self.play_button.setText("Pause")
+            self.video_status = 'Playing'
             self.timer.start()
             self.timer.timeout.connect(self.updateFrame)
             self.timer.start(33)
         else:    # timer가 활성화되면 정지
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
+            self.video_status = 'Stop'
+            self.set_status_bar()
             self.timer.stop()
             self.dd.frame_number = int(
                 self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
@@ -384,7 +393,7 @@ class MyWindow(QMainWindow):
         self.cl.init_selector("delete")
 
     def apply_windowing(self):
-        self.cl.init_draw_mode("windowing", self.set_status_bar)
+        self.cl.init_draw_mode("windowing")
 
     def draw_straight_line(self):
         self.cl.init_draw_mode("line")
