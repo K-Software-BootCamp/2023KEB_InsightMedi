@@ -129,6 +129,11 @@ class MyWindow(QMainWindow):
         cursor_action.triggered.connect(self.selector)
         toolbar.addAction(cursor_action)
 
+        palette_action = QAction(
+            QIcon('icon/palette_icon.png'), "Palette", self)
+        palette_action.triggered.connect(self.palette)
+        toolbar.addAction(palette_action)
+        
         # Line action
         straightline_action = QAction(
             QIcon('icon/straightline_icon.png'), "Line", self)
@@ -392,6 +397,13 @@ class MyWindow(QMainWindow):
     def selector(self):
         self.setCursor(Qt.ArrowCursor)
         self.cl.init_selector("selector")
+    
+    def palette(self):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            # 선택한 색상이 유효한 경우, 해당 색상 정보를 저장
+            self.selected_color = color
+            print(self.selected_color)
 
     def delete(self):
         self.setCursor(Qt.PointingHandCursor)
