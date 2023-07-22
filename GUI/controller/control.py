@@ -2,6 +2,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import math
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.patches import Circle, Rectangle
@@ -104,7 +105,6 @@ class Controller():
 
 
     def set_mpl_disconnect(self):
-        self.press = None
         if self.cid:
             for cid in self.cid:
                 self.canvas.mpl_disconnect(cid)
@@ -147,6 +147,7 @@ class Controller():
             #     #선택된 artist가 있고 버튼을 누르면 지웁니다.
             #     self.artist.remove()
             #     self.canvas.draw()
+            print("in the init selecotr mode delelte")
             self.selector_mode = 'selector'
             self.annotation_mode = mode
             cid4 = self.canvas.mpl_connect('key_press_event', self.selector_key_on_press)
@@ -174,7 +175,7 @@ class Controller():
             #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
             self.artist = event.artist
             self.selector_change_color("blue")
-            # print(dir(self.artist))  
+            # print(dir(self.artist))
             print(f"label name : {self.artist.get_label()}")
             if self.annotation_mode == 'delete':
                 try:
@@ -239,7 +240,7 @@ class Controller():
         self.canvas.draw()
 
     def selector_key_on_press(self, event):
-        print(event)
+        print(event.key)
         print(dir(event))
         if event.key == "delete":
             print("delete press")
@@ -358,10 +359,15 @@ class Controller():
         """
         windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.  
         windwow width는 y값에 대해 변경되므로 마우스 상하로 변경됩니다.
+        windowing 값은 정수값입니다.
         """
+        def digit_length(num):
+            return int(math.log10(num)) + 1 if num > 0 else 0
+        xd = digit_length(dd.image.shape[0]) - 1
+        yd = digit_length(dd.image.shape[1]) - 1
         try:
-            dd.ds.WindowCenter = round(dd.ds.WindowCenter + 10 * dx/dd.image.shape[0], 2)
-            dd.ds.WindowWidth = round(dd.ds.WindowWidth - 10 * dy/dd.image.shape[1], 2)
+            dd.ds.WindowCenter = int(dd.ds.WindowCenter + (10**xd) * dx / dd.image.shape[0])
+            dd.ds.WindowWidth = int(dd.ds.WindowWidth - (10**yd) * dy / dd.image.shape[1])
             # print(wl, ww)
             modality_lut_image = apply_modality_lut(dd.image, dd.ds)
             voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
