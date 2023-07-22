@@ -29,8 +29,8 @@ class DcmData():
         self.video_player = None
         self.frame_number = 0
         self.total_frame = 0
-        self.video_wl = 255.0
-        self.video_ww = 255.0
+        # self.video_wl = 255
+        # self.video_ww = 255
 
     def open_file(self, fname, *args, **kwargs):
         self.file_extension = fname[0].split('/')[-1].split(".")[-1]
@@ -148,6 +148,34 @@ class DcmData():
         except Exception as e:
             print(f"An error occured while deleting a file '{file_name}")
 
+    def delete_label(self, _label_name):
+        try:
+            if _label_name in self.all_label:
+                self.all_label.remove(_label_name)
+        except KeyError:
+            print("Not Member in all label")
+        
+        frame_dict = self.frame_label_dict[self.frame_number]
+        #frame_dict.keys() : ”type”
+        #frame_dict.values() : {”label id1”: {coords: [], color : “” }
+        for label_dict in frame_dict.values():
+            if _label_name in label_dict:
+                u = label_dict.pop(_label_name)
+                print("pop 한 data : ", u)
+                break
+        print(self.all_label)
+        print(self.frame_label_dict)
+                 
+        pass
+    
+    def modify_label_data(self, _label_name, _coor):
+        frame_dict = self.frame_label_dict[self.frame_number]
+        for label_dict in frame_dict.values():
+            if _label_name in label_dict:
+                label_dict[_label_name] = _coor
+                break
+        print(self.frame_label_dict)
+            
     def set_new_label_name(self, name = False):
         #print(self.frame_label_dict)
         #print(self.frame_number)

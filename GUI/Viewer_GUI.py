@@ -95,7 +95,7 @@ class MyWindow(QMainWindow):
         self.statusBar().showMessage("")
 
         #Create Controller
-        self.cl = Controller(self.dd, self.canvas, self.set_status_bar)
+        self.cl = Controller(self.dd, self.canvas, self.set_status_bar, self.delete_label_button)
         '''
         파일 도구
         '''
@@ -246,7 +246,7 @@ class MyWindow(QMainWindow):
             
             #self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
-            #self.load_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
+            #self.load_label(dd.frame_label_dict)   # TODO 1open한 파일에 이미 저장되어 있는 label button 활성화 (load label 함수 수정 후 주석 처리 풀 예정)
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -313,8 +313,8 @@ class MyWindow(QMainWindow):
                 widget.deleteLater()
         self.frame_layout.update()
     
-    def delete_label(self, frame):
-        #특정 frame이동 버튼 제거하기
+    def delete_frame_button(self, frame):
+        # TODO 특정 frame에 있는 label들 비활성화 화기
         if frame in self.buttons:
             #button_to_remove = self.buttons[frame]
             #self.frame_layout.removeWidget(button_to_remove)
@@ -325,6 +325,20 @@ class MyWindow(QMainWindow):
             print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
         self.frame_layout.update()
 
+    def delete_label_button(self, _label_name):
+        #특정 label 버튼 제거하기
+        if _label_name in self.label_buttons:
+            button_to_remove = self.label_buttons[_label_name]
+            self.label_layout.removeWidget(button_to_remove)
+            button_to_remove.deleteLater()
+            del self.label_buttons[_label_name]
+            print(self.label_buttons)
+            print(f"{_label_name} 라벨에 대한 버튼 제거됨")
+        else:
+            print(f"{_label_name} 라벨에 대한 버튼을 찾을 수 없음")
+        self.dd.delete_label(_label_name)
+        self.frame_layout.update()
+    
     def label_clicked(self, frame):
         #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
         self.setCursor(Qt.ArrowCursor)

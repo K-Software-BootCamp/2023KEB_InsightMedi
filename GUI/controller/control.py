@@ -12,7 +12,7 @@ from data.dcm_data import DcmData
 
 
 class Controller():
-    def __init__(self, dd: DcmData, canvas: FigureCanvas, set_status_bar) -> None:
+    def __init__(self, dd: DcmData, canvas: FigureCanvas, set_status_bar, delete_label_button) -> None:
         self.canvas = canvas
         self.dd = dd
         self.fig = canvas.figure
@@ -37,9 +37,11 @@ class Controller():
         self.is_panning = False
         self.pan_Start = None
         self.change_status_bar = set_status_bar
+        self.delete_label_button = delete_label_button
 
         self.press=None
         self.artist = None
+        self.changed_coor = None
         
     def draw_annotation(self, color="red"):
         if self.start and self.end and self.selector_mode == "Drawing":
@@ -59,7 +61,7 @@ class Controller():
                 y = [self.start[1], self.end[1]]
                 self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color=color)[0]
                 if self.is_drawing is False:
-                    self.dd.add_label("line", (x[0], y[0], x[1], y[1]), color)
+                    self.dd.add_label("line", ((x[0], y[0]), (x[1], y[1])), color)
 
             elif self.annotation_mode == "rectangle":
                 width = abs(self.start[0] - self.end[0])
@@ -184,8 +186,8 @@ class Controller():
             if self.annotation_mode == 'delete':
                 try:
                     self.artist = event.artist
+                    self.delete_label(self.artist.get_label())
                     self.artist.remove()
-                    self.artist = None
                     #label button과 frame_label_dict에서 해당 라벨 삭제
                     # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_class].delete()
                     # self.dd.delete_label_file
@@ -193,6 +195,11 @@ class Controller():
                     print(e)
         self.canvas.draw()
     
+    
+    def delete_label(self, label_name):
+        """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 지우고 데이터 지우는 순차적 구조입니다."""
+        self.delete_label_button(label_name)
+        
     def selector_on_press(self, event):
         """ 라벨들 선택하면 self.press에 x,y 데이터 저장하는 기능입니다. """
         if self.artist is None:
@@ -226,6 +233,7 @@ class Controller():
         (x0, y0), (xpress, ypress) = self.press
         dx = event.xdata - xpress
         dy = event.ydata - ypress
+        
         if isinstance(self.artist, Line2D):
             self.artist.set_xdata(x0 + dx)
             self.artist.set_ydata(y0 + dy)
@@ -236,12 +244,37 @@ class Controller():
             self.artist.set_y(y0 + dy)
         elif isinstance(self.artist, Circle):
             self.artist.set_center((x0 + dx, y0 + dy))
-
+            
+        self.changed_coor = (x0 + dx, y0 + dy)
         self.canvas.draw()
 
     def selector_on_release(self, event):
-        self.press = None
         self.canvas.draw()
+        self.modify_label_data()
+        
+
+    def modify_label_data(self):
+        cc = self.changed_coor
+        print("MODIFY _ LABEL _ DATA")
+        print(cc)
+        ret_points = None
+        if isinstance(self.artist, Line2D):
+            #free hand
+            print(len(cc[0]))
+            print(cc[0][0], cc[1][0])
+            ret_points = [(cc[0][i], cc[1][i]) for i in range(len(cc[0]))]
+        elif isinstance(self.artist, Rectangle):
+            ret_points = (cc[0], cc[1], self.artist.get_width(), self.artist.get_height())
+
+        elif isinstance(self.artist, Circle):
+            ret_points = (self.artist.get_center(), self.artist.get_radius())
+            
+            
+        print(ret_points)
+            
+        print("MODIFY _ LABEL _ END")
+        self.dd.modify_label_data(self.artist.get_label(), ret_points)
+        self.press = None
 
     def selector_key_on_press(self, event):
         print(event.key)
