@@ -21,8 +21,9 @@ class Controller():
         # canvas fig 색상 변경
         self.fig.patch.set_facecolor('#303030')
         self.ax.patch.set_facecolor("#3A3A3A")
-        self.ax.tick_params(axis = 'x', colors = 'gray')
-        self.ax.tick_params(axis = 'y', colors = 'gray')
+        self.ax.axis("off")
+        #self.ax.tick_params(axis = 'x', colors = 'gray')
+        #self.ax.tick_params(axis = 'y', colors = 'gray')
 
         self.annotation_mode = None
         self.annotation = None
@@ -98,6 +99,7 @@ class Controller():
                 #     self.mp4_windowing_change(dd, dx, dy)
                 if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
+
             self.canvas.draw()
 
     def set_mpl_connect(self, *args):
@@ -353,8 +355,9 @@ class Controller():
         if clear:
             self.ax.clear()
         self.ax.imshow(img, cmap=cmap)
-        self.ax.tick_params(axis = 'x', colors = 'gray')
-        self.ax.tick_params(axis = 'y', colors = 'gray')
+        #self.ax.tick_params(axis = 'x', colors = 'gray')
+        #self.ax.tick_params(axis = 'y', colors = 'gray')
+        self.ax.axis("off")
         self.canvas.draw()
 
     def erase_annotation(self, erase_dict=False):

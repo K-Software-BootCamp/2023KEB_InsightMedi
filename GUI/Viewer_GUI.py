@@ -360,7 +360,7 @@ class MyWindow(QMainWindow):
     def playButtonClicked(self):    # 영상 재생 버튼의 함수
         self.setCursor(Qt.ArrowCursor)
         if not self.timer:    # timer 없으면 새로 생성하고 updateFrame을 callback으로 등록
-            self.timer = self.canvas.new_timer(interval=33)  # 30FPS
+            self.timer = self.canvas.new_timer(interval=16)  # 60FPS
             #self.timer.add_callback(self.updateFrame)
       
         if not self.timer.isActive():   # 재생 시작
@@ -368,7 +368,7 @@ class MyWindow(QMainWindow):
             self.video_status = 'Playing'
             self.timer.start()
             self.timer.timeout.connect(self.updateFrame)
-            self.timer.start(33)
+            self.timer.start(16)
         else:    # timer가 활성화되면 정지
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
@@ -397,9 +397,6 @@ class MyWindow(QMainWindow):
                 #print("재생 중")
                 self.slider.setValue(self.dd.frame_number)
         print("update Frame 호출, 현재 frame: ", self.dd.frame_number)
-    
-
-
         
     # windowing값을 input dialog로 받아 보여주는 코드
     # def windowing_input_dialog(self):
