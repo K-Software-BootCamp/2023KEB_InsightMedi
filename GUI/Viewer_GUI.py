@@ -246,7 +246,8 @@ class MyWindow(QMainWindow):
             
             #self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
-            #self.load_label(dd.frame_label_dict)   # TODO 1open한 파일에 이미 저장되어 있는 label button 활성화 (load label 함수 수정 후 주석 처리 풀 예정)
+            # TODO : load label 함수 수정 후 아래 코드 주석 풀기
+            #self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -274,7 +275,7 @@ class MyWindow(QMainWindow):
         else:
             print("Open fail")
 
-    def load_label(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
+    def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
         #print(ld)
         for frame, frame_dict in ld.items():
             for drawing_type, label_dict in frame_dict.itmes():
@@ -291,7 +292,9 @@ class MyWindow(QMainWindow):
         button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
         print(label, 'button clicked')
 
-        self.draw_rectangle()
+        # TODO : 해당 label을 frame에서 지운 후, label 하나 그리면 그리기 모드 종료되고, 해당 label 선택된 상태로 만들기 
+        # (일단 사각형 그리기로 했는데, 추후 수정이 필요합니다)
+        self.draw_rectangle()    # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
 
     def go_button_clicked(self, label):
         print(label, "go button clicked")
@@ -314,7 +317,7 @@ class MyWindow(QMainWindow):
         self.frame_layout.update()
     
     def delete_frame_button(self, frame):
-        # TODO 특정 frame에 있는 label들 비활성화 화기
+        # FIXME : 특정 frame에 있는 label들 비활성화 화기
         if frame in self.buttons:
             #button_to_remove = self.buttons[frame]
             #self.frame_layout.removeWidget(button_to_remove)
