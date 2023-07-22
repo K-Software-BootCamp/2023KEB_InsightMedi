@@ -78,8 +78,8 @@ class DcmData():
                 except FileNotFoundError:
                     pass
     
-        print("load 된 label list:", self.all_label)
-        print("load된 frame_label_dict:",self.frame_label_dict)
+        #print("load 된 label list:", self.all_label)
+        #print("load된 frame_label_dict:",self.frame_label_dict)
             
     def save_label(self):
         for key in self.frame_label_dict:

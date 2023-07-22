@@ -40,48 +40,54 @@ class MyWindow(QMainWindow):
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         
-        self.frame_list = QWidget()
-        self.frame_layout = QVBoxLayout()
-        self.frame_list.setLayout(self.frame_layout)
-        self.buttons = {}
-
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
+        self.buttons = {}
 
         for i in range(10):
-            self.label_test_button = QPushButton("label %d test"%i)
-            self.label_test_button.setStyleSheet("color: lightgray; height: 30px;")
-            self.label_layout.addWidget(self.label_test_button)
-            self.label_buttons = {}
+            self.button_layout = QHBoxLayout()
+            label_name = "label %2d"%(i+1)
+            self.label_button = QPushButton(label_name)
+            self.label_button.setStyleSheet("color: gray; height: 30px; width: 120px;")
+            self.label_button.clicked.connect(partial(self.label_button_clicked, label_name))
 
+            self.go_button = QPushButton("GO")
+            self.go_button.clicked.connect(partial(self.go_button_clicked, label_name))
+            self.go_button.setStyleSheet("color: gray; height: 30px; width: 50px;")
+
+            self.button_layout.addWidget(self.label_button)
+            self.button_layout.addWidget(self.go_button)
+            self.label_layout.addLayout(self.button_layout)
+            
+            self.label_go_buttons = [self.label_button, self.go_button]
+            self.buttons[label_name] = self.label_go_buttons
+
+        print(self.buttons)
+        
+        # slider and play button
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
         self.play_button.setStyleSheet("color: lightgray;")
         self.video_status = None
 
-        # Frame list scroll area
-        self.frame_scroll_area = QScrollArea()
-        self.frame_scroll_area.setWidget(self.frame_list)
-        self.frame_scroll_area.setWidgetResizable(True)
-
+        # Label list scroll area
         self.label_scroll_area = QScrollArea()
         self.label_scroll_area.setWidget(self.label_list)
         self.label_scroll_area.setWidgetResizable(True)
 
         # Layout
         grid_box = QGridLayout(self.main_widget)
-        grid_box.setColumnStretch(0, 2)   # column 0 width 2
+        grid_box.setColumnStretch(0, 4)   # column 0 width 2
         grid_box.setColumnStretch(1, 1)   # column 1 width 1
 
         #column 0
         grid_box.addWidget(self.canvas, 0, 0, 4, 1)
         grid_box.addWidget(self.slider, 4, 0)
-        grid_box.addWidget(self.play_button, 5, 0)
 
         # column 1
-        grid_box.addWidget(self.frame_scroll_area, 0, 1, 3, 1)
-        grid_box.addWidget(self.label_scroll_area, 3, 1, 3, 1)
+        grid_box.addWidget(self.label_scroll_area, 0, 1, 3, 1)
+        grid_box.addWidget(self.play_button, 3, 1)
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
@@ -238,10 +244,9 @@ class MyWindow(QMainWindow):
             dd.open_file(fname)
             # viewer 설정 초기화
             
-            self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
+            #self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
-            self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
-            self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
+            #self.load_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -269,17 +274,35 @@ class MyWindow(QMainWindow):
         else:
             print("Open fail")
 
-    def open_label(self, ld):    # label dictionary로부터 존재하는 label file만큼 버튼 생성
-        for frame in ld:
-            # label = QLabel(label_text)
-            #print("현재 GUI에 있는 button 목록:", self.buttons)
-            if frame not in self.buttons:
-                button = QPushButton(f"{frame} frame", self)
-                button.setStyleSheet("color: lightgray; height: 30px;")
-                self.buttons[frame] = button
-                button.clicked.connect(partial(self.label_clicked, frame))
-            # self.layout.addWidget(label)
-                self.frame_layout.addWidget(button)
+    def load_label(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
+        #print(ld)
+        for frame, frame_dict in ld.items():
+            for drawing_type, label_dict in frame_dict.itmes():
+                for label_name in label_dict.keys():
+                    if label_name in self.buttons:
+                        button_list = self.buttons[label_name]
+                        button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
+                        button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
+
+    
+    def label_button_clicked(self, label):
+        button_list = self.buttons[label]
+        button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
+        button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
+        print(label, 'button clicked')
+
+        self.draw_rectangle()
+
+    def go_button_clicked(self, label):
+        print(label, "go button clicked")
+
+        for frame, frame_dict in self.dd.frame_label_dict.items():
+            for drawing_type, label_dict in frame_dict.items():
+                if label in label_dict.keys():
+                    first_frame = frame
+                    break
+        
+        self.label_clicked(first_frame)
 
     def delete_total_label(self):
         #frame 이동 버튼들 전부 제거하기
@@ -293,9 +316,9 @@ class MyWindow(QMainWindow):
     def delete_label(self, frame):
         #특정 frame이동 버튼 제거하기
         if frame in self.buttons:
-            button_to_remove = self.buttons[frame]
-            self.frame_layout.removeWidget(button_to_remove)
-            button_to_remove.deleteLater()
+            #button_to_remove = self.buttons[frame]
+            #self.frame_layout.removeWidget(button_to_remove)
+            #button_to_remove.deleteLater()
             del self.buttons[frame]
             print(f"{frame} 프레임에 대한 버튼 제거됨")
         else:
@@ -316,7 +339,6 @@ class MyWindow(QMainWindow):
     def save(self):
         # 저장 기능 구현
         self.dd.save_label()
-        self.open_label(self.dd.frame_label_dict)
 
         print("Save...")
 
@@ -439,8 +461,8 @@ class MyWindow(QMainWindow):
 
         if reply == QMessageBox.Yes:
             self.cl.erase_annotation(erase_dict=True)    # canvas 위에 그려진 label 삭제
-            self.delete_label(self.dd.frame_number)    # button 삭제하기
-            self.dd.delete_label_file(self.dd.frame_number)    # label이 저장된 text file 삭제
+            #self.delete_label(self.dd.frame_number)    # button 삭제하기
+            #self.dd.delete_label_file(self.dd.frame_number)    # label이 저장된 text file 삭제
             print(self.dd.frame_label_dict)
 
     def zoom_in(self):
