@@ -16,11 +16,11 @@ class DcmData():
         self.file_mode = None  #file_mode가 'dcm'이면 dcm또는 DCM파일. file_mode가 'mp4' mp4파일을 가리킵니다.
 
         self.label_dir = None
-        self.frame_label_dict = {}
-        self.label_dict_schema = {"line": None, "rectangle": None,
-                           "circle": None, "freehand": None}  
+        self.frame_label_dict = {}  # {"frame_number”: {”type”: {”label id1”: {coords: [], color : “” }}, “label id2”: [coords]}
+
         self.label_id = 0
         self.label_name = f"label {self.label_id}"
+        self.all_label = set()
 
         self.ds = None
         self.pixel = None
@@ -38,6 +38,7 @@ class DcmData():
         self.file_dir = os.path.dirname(fname[0])
         self.label_dir = self.file_dir + f"/{self.file_name}"
         self.frame_label_dict.clear()
+        self.all_label = set()
         self.image = None
 
         try:
@@ -68,8 +69,16 @@ class DcmData():
                         for key in t:
                             frame_dict[key] = t[key]
                         self.frame_label_dict[frame_number] = frame_dict
+                        
+                        # all label에 추가
+                        for drawing_type in frame_dict.keys():
+                            for label in frame_dict[drawing_type].keys():
+                                self.all_label.add(label)
+
                 except FileNotFoundError:
                     pass
+    
+        print("load 된 label list:", self.all_label)
         print("load된 frame_label_dict:",self.frame_label_dict)
             
     def save_label(self):
@@ -77,32 +86,34 @@ class DcmData():
             with open(f"{self.label_dir}/{key}.txt", 'w') as f:
                 f.write(json.dumps(self.frame_label_dict[key]))
     
-    def add_label(self, key, value):    #key: label_type / value: 좌표
+    # {"frame_number”: {”type”: {”label id1”: {coords: [], color : “” }}, “label id2”: [coords]}
+    def add_label(self, drawing_type, coords, color="red"):
         #print("전체 frame별 label dictionary", self.frame_label_dict)
         try:
-            label_dict = self.frame_label_dict[self.frame_number]
-            print("현재 frame에 있는 label들", label_dict)
+            frame_dict = self.frame_label_dict[self.frame_number]
+            #print("현재 frame에 있는 label들", frame_dict)   # {"type:{”label id1”: {coords: [], color : “” }, "label id2":{coords: [], color: ""}}
         except KeyError:
             self.frame_label_dict[self.frame_number] = {}
-            label_dict =  self.frame_label_dict[self.frame_number]
-            print("새로운 frame에 label을 그렸을 때 text파일에 들어갈 정보 틀 생성")
-
+            frame_dict =  self.frame_label_dict[self.frame_number]   # {}
+            #print("새로운 frame에 label을 그렸을 때 text파일에 들어갈 정보 틀 생성")
         
-        self.label_name = f"label {self.label_id}"
+        try:
+            label_type_dict = frame_dict[drawing_type]
+        except KeyError:
+            frame_dict[drawing_type] = {}
+            label_type_dict = frame_dict[drawing_type]
         
-        for name in label_dict:
-            if name == self.label_name:
-                print("이미 현재 label을 이름으로 갖고 있음.")
-                self.label_id += 1
-                self.label_name = f"label {self.label_id}"
+        #self.set_new_label_name()
         
+        print("추가될 label 이름:", self.label_name)
         # frame_label_dict에 label data 저장
-        new_label_dict_schema = copy.deepcopy(self.label_dict_schema)
-        new_label_dict_schema[key] = value
-        label_dict[self.label_name] = new_label_dict_schema
+        label_data_dict = {}
+        label_data_dict['coords'] = coords
+        label_data_dict['color'] = color
 
-        print("labeel 그려진 이후 frame_label_dict", self.frame_label_dict)
-        self.label_id += 1
+        label_type_dict[self.label_name] = label_data_dict
+        self.all_label.add(self.label_name)
+        print("labeel 그려진 이후 frame_label_dict\n", self.frame_label_dict)
         #ld[key].append(label_dict)
         #print("확인",ld)
         #print("현재 framenumber", self.frame_number)
@@ -136,3 +147,27 @@ class DcmData():
             print(f"file '{file_name}' not found")
         except Exception as e:
             print(f"An error occured while deleting a file '{file_name}")
+
+    def set_new_label_name(self, name = False):
+        #print(self.frame_label_dict)
+        #print(self.frame_number)
+        if name == False or name in self.all_label:
+            try:
+                if name in self.all_label:
+                    print("이름이 동일한 label이 존재합니다. ")
+
+                self.label_id = 0
+                self.label_name = f"label {self.label_id}"
+                
+                for _ in range(len(self.all_label)):
+                    if self.label_name in self.all_label:
+                        self.label_id += 1
+                        self.label_name = f"label {self.label_id}"
+                
+                self.all_label.add(self.label_name)
+            except:
+                pass
+
+        else:
+            self.label_name = name
+            self.all_label.add(self.label_name)

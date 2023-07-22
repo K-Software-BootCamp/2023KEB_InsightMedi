@@ -37,15 +37,17 @@ class Controller():
         self.press=None
         self.artist = None
         
-    def draw_annotation(self):
+    def draw_annotation(self, color = "red"):
         if self.start and self.end and self.is_drawing == False:
-            label_class = self.dd.label_class
+            self.dd.set_new_label_name()
+            label_name = self.dd.label_name
+            print("draw annotation에서 기록되는label name:", label_name)
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
-                self.ax.plot(x, y, picker=True, label=label_class, color='red')[0]
+                self.ax.plot(x, y, picker=True, label=label_name, color=color)[0]
                 self.canvas.draw()
-                self.dd.add_label("line", (x[0], y[0], x[1], y[1]))
+                self.dd.add_label("line", (x[0], y[0], x[1], y[1]), color)
 
 
             elif self.annotation_mode == "rectangle":
@@ -54,9 +56,9 @@ class Controller():
                 x = min(self.start[0], self.end[0])
                 y = min(self.start[1], self.end[1])
                 self.ax.add_patch(
-                    Rectangle((x, y), width, height, fill=False, picker=True, label=label_class, edgecolor='red') )
+                    Rectangle((x, y), width, height, fill=False, picker=True, label=label_name, edgecolor=color) )
                 self.canvas.draw()
-                self.dd.add_label("rectangle", (x, y, width, height))
+                self.dd.add_label("rectangle", (x, y, width, height), color)
 
             elif self.annotation_mode == "circle":
                 dx = self.end[0] - self.start[0]
@@ -64,15 +66,17 @@ class Controller():
                 center = self.start
                 radius = np.sqrt(dx ** 2 + dy ** 2)
                 self.ax.add_patch(
-                    Circle(center, radius, fill=False, picker=True, label=label_class, edgecolor='red'))
-                self.dd.add_label("circle", (center, radius))
+                    Circle(center, radius, fill=False, picker=True, label=label_name, edgecolor=color))
+                self.canvas.draw()
+                self.dd.add_label("circle", (center, radius), color)
 
             elif self.annotation_mode == "freehand":
                 if self.points:
                     x, y = zip(*self.points)
-                    self.ax.plot(x, y, picker=True, label=label_class, color='red')
+                    self.ax.plot(x, y, picker=True, label=label_name, color=color)
                     self.end = None
-                    self.dd.add_label("freehand", self.points)
+                    self.canvas.draw()
+                    self.dd.add_label("freehand", self.points, color)
 
             elif self.annotation_mode == "windowing":
                 dd = self.dd
@@ -249,34 +253,38 @@ class Controller():
     def label_clicked(self, frame):
         self.erase_annotation()
         self.dd.load_label_dict()
-        ld = self.dd.frame_label_dict[frame]
-        if ld["line"]:
-            line = ld["line"]
-            for label in line:
-                coor = line[label]
-                self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, color='red')
-        
-        if ld["rectangle"]:
-            rec = ld["rectangle"]
-            for label in rec:
-                coor = rec[label]
-                self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
-                                            picker=True, edgecolor='red'))
-        if ld["circle"]:
-            cir = ld["circle"]
-            for coor in cir:
-                coor = cir[label]
-                self.ax.add_patch(
-                    Circle(coor[0], coor[1], fill=False, picker=True, edgecolor='red'))
-        
-        if ld["freehand"]:
-            freehand = ld["freehand"]
-            for label in freehand:
-                fh = freehand[label]
-                for coor in fh:
-                    x_coords, y_coords = zip(*fh)
-                    self.ax.plot(
-                        x_coords, y_coords, picker=True, color='red')
+        frame_directory = self.dd.frame_label_dict[frame]
+
+        for drawing_type in frame_directory:
+            label_directory = frame_directory[drawing_type]
+            for label in label_directory:
+                ld = label_directory[label]
+                #print("\nld:", ld)
+                if drawing_type == "line":
+                    coor = ld["coords"]
+                    color = ld["color"]
+                    self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, color=color)
+                    
+                if drawing_type == "rectangle":
+                    coor = ld["coords"]
+                    color = ld["color"]
+                    #print("현재 label은 사각형임", ld['rectangle'])
+                    self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
+                                                    picker=True, edgecolor=color))
+                if drawing_type == "circle":
+                    coor = ld["coords"]
+                    color = ld["color"]
+                    self.ax.add_patch(
+                        Circle(coor[0], coor[1], fill=False, picker=True, edgecolor=color))
+                    
+                if drawing_type == "freehand":
+                    fh = ld["coords"]
+                    color = ld["color"]
+                    for coor in fh:
+                        x_coords, y_coords = zip(*fh)
+                        self.ax.plot(
+                            x_coords, y_coords, picker=True, color=color)
+            
         self.canvas.draw()
 
     def img_show(self, img, cmap='viridis', init=False, clear=False):
