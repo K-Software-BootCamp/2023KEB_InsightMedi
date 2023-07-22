@@ -20,8 +20,9 @@ class Controller():
         # canvas fig 색상 변경
         self.fig.patch.set_facecolor('#303030')
         self.ax.patch.set_facecolor("#3A3A3A")
-        self.ax.tick_params(axis = 'x', colors = 'gray')
-        self.ax.tick_params(axis = 'y', colors = 'gray')
+        self.ax.axis("off")
+        #self.ax.tick_params(axis = 'x', colors = 'gray')
+        #self.ax.tick_params(axis = 'y', colors = 'gray')
 
         self.annotation_mode = None
         self.annotation = None
@@ -40,7 +41,7 @@ class Controller():
         self.artist = None
         
     def draw_annotation(self, color="red"):
-        if self.start and self.end and self.is_selector_mode == "Drawing":
+        if self.start and self.end and self.selector_mode == "Drawing":
             if self.annotation:
                 #연속적인 라벨의 그림을 보여주기 위해 이전 annotation을 제거해줍니다.
                 if self.annotation_mode == 'freehand':
@@ -95,6 +96,7 @@ class Controller():
                 #     self.mp4_windowing_change(dd, dx, dy)
                 if dd.file_mode == 'dcm':
                     self.dcm_windowing_change(dd, dx, dy)
+
             self.canvas.draw()
 
     def set_mpl_connect(self, *args):
@@ -319,8 +321,9 @@ class Controller():
         if clear:
             self.ax.clear()
         self.ax.imshow(img, cmap=cmap)
-        self.ax.tick_params(axis = 'x', colors = 'gray')
-        self.ax.tick_params(axis = 'y', colors = 'gray')
+        #self.ax.tick_params(axis = 'x', colors = 'gray')
+        #self.ax.tick_params(axis = 'y', colors = 'gray')
+        self.ax.axis("off")
         self.canvas.draw()
 
     def erase_annotation(self, erase_dict=False):
