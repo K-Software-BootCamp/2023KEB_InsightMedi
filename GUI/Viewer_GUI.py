@@ -43,17 +43,19 @@ class MyWindow(QMainWindow):
         self.frame_list = QWidget()
         self.frame_layout = QVBoxLayout()
         self.frame_list.setLayout(self.frame_layout)
-        self.buttons = {}
+        self.frame_buttons = {}
 
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
 
+        self.label_buttons = {}
         for i in range(10):
-            self.label_test_button = QPushButton("label %d test"%i)
-            self.label_test_button.setStyleSheet("color: lightgray; height: 30px;")
-            self.label_layout.addWidget(self.label_test_button)
-            self.label_buttons = {}
+            label_name = "label %d"%i
+            label_test_button = QPushButton(label_name)
+            label_test_button.setStyleSheet("color: lightgray; height: 30px;")
+            self.label_layout.addWidget(label_test_button)
+            self.label_buttons[label_name] = label_test_button
 
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
@@ -89,7 +91,7 @@ class MyWindow(QMainWindow):
         self.statusBar().showMessage("")
 
         #Create Controller
-        self.cl = Controller(self.dd, self.canvas, self.set_status_bar)
+        self.cl = Controller(self.dd, self.canvas, self.set_status_bar, self.delete_label_button)
         '''
         파일 도구
         '''
@@ -240,8 +242,8 @@ class MyWindow(QMainWindow):
             
             self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
-            self.buttons.clear() if self.buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
-            self.open_label(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
+            self.frame_buttons.clear() if self.frame_buttons else None   # 생성된 button widget들이 있는 dictionary 초기화
+            self.open_frame_buttons(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 생성
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
@@ -269,17 +271,20 @@ class MyWindow(QMainWindow):
         else:
             print("Open fail")
 
-    def open_label(self, ld):    # label dictionary로부터 존재하는 label file만큼 버튼 생성
+    def open_frame_buttons(self, ld):    # label dictionary로부터 존재하는 frame만큼 frame버튼 생성
         for frame in ld:
             # label = QLabel(label_text)
             #print("현재 GUI에 있는 button 목록:", self.buttons)
-            if frame not in self.buttons:
+            if frame not in self.frame_buttons:
                 button = QPushButton(f"{frame} frame", self)
                 button.setStyleSheet("color: lightgray; height: 30px;")
-                self.buttons[frame] = button
+                self.frame_buttons[frame] = button
                 button.clicked.connect(partial(self.label_clicked, frame))
             # self.layout.addWidget(label)
                 self.frame_layout.addWidget(button)
+    
+    def open_label_buttons(self):
+        pass
 
     def delete_total_label(self):
         #frame 이동 버튼들 전부 제거하기
@@ -290,18 +295,32 @@ class MyWindow(QMainWindow):
                 widget.deleteLater()
         self.frame_layout.update()
     
-    def delete_label(self, frame):
+    def delete_frame_button(self, frame):
         #특정 frame이동 버튼 제거하기
-        if frame in self.buttons:
-            button_to_remove = self.buttons[frame]
+        if frame in self.frame_buttons:
+            button_to_remove = self.frame_buttons[frame]
             self.frame_layout.removeWidget(button_to_remove)
             button_to_remove.deleteLater()
-            del self.buttons[frame]
+            del self.frame_buttons[frame]
             print(f"{frame} 프레임에 대한 버튼 제거됨")
         else:
             print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
         self.frame_layout.update()
 
+    def delete_label_button(self, _label_name):
+        #특정 label 버튼 제거하기
+        if _label_name in self.label_buttons:
+            button_to_remove = self.label_buttons[_label_name]
+            self.label_layout.removeWidget(button_to_remove)
+            button_to_remove.deleteLater()
+            del self.label_buttons[_label_name]
+            print(self.label_buttons)
+            print(f"{_label_name} 라벨에 대한 버튼 제거됨")
+        else:
+            print(f"{_label_name} 라벨에 대한 버튼을 찾을 수 없음")
+        self.dd.delete_label(_label_name)
+        self.frame_layout.update()
+    
     def label_clicked(self, frame):
         #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
         self.setCursor(Qt.ArrowCursor)
@@ -316,7 +335,7 @@ class MyWindow(QMainWindow):
     def save(self):
         # 저장 기능 구현
         self.dd.save_label()
-        self.open_label(self.dd.frame_label_dict)
+        self.open_frame_buttons(self.dd.frame_label_dict)
 
         print("Save...")
 
@@ -442,7 +461,7 @@ class MyWindow(QMainWindow):
 
         if reply == QMessageBox.Yes:
             self.cl.erase_annotation(erase_dict=True)    # canvas 위에 그려진 label 삭제
-            self.delete_label(self.dd.frame_number)    # button 삭제하기
+            self.delete_frame_button(self.dd.frame_number)    # button 삭제하기
             self.dd.delete_label_file(self.dd.frame_number)    # label이 저장된 text file 삭제
             print(self.dd.frame_label_dict)
 
