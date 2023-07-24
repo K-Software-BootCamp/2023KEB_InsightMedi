@@ -241,15 +241,19 @@ class MyWindow(QMainWindow):
             #self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
             # TODO : load label 함수 수정 후 아래 코드 주석 풀기
-            #self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
+            self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
+                if self.dd.frame_label_check(self.dd.frame_number):
+                    self.cl.label_clicked(self.dd.frame_number)
                 self.slider.setMaximum(0)
                 
             elif dd.file_mode == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
+                if self.dd.frame_label_check(self.dd.frame_number):
+                    self.cl.label_clicked(self.dd.frame_number)
 
                 print(dd.total_frame)
                 self.slider.setMaximum(dd.total_frame - 1)
@@ -269,23 +273,24 @@ class MyWindow(QMainWindow):
         else:
             print("Open fail")
 
-    #def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
-    #    all_labels = set()
-    #    for frame in ld:
-    #        labels = self.dd.frame_label_check(frame)
-    #        if labels:
-    #            for label in labels:
-    #                all_labels.add(label)
-    #    
-    #    for label_name in self.buttons:
-    #        temp_label_buttons = self.buttons[label_name]
-    #        if label_name in all_labels:
-    #            temp_label_buttons[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
-    #            temp_label_buttons[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
-    #        else:
-    #            temp_label_buttons[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
-    #            temp_label_buttons[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
-
+    def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
+        all_labels = set()
+        for frame in ld:
+            labels = self.dd.frame_label_check(frame)
+            if labels:
+                for label in labels:
+                    all_labels.add(label)
+        
+        for label_name in self.buttons:
+            temp_label_buttons = self.buttons[label_name]
+            if label_name in all_labels:
+                temp_label_buttons[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
+                temp_label_buttons[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
+            else:
+                temp_label_buttons[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
+                temp_label_buttons[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
+        
+        self.label_layout.update()
     
     def label_button_clicked(self, label):
         button_list = self.buttons[label]
@@ -312,8 +317,6 @@ class MyWindow(QMainWindow):
             self.draw_freehand(label)
         else:
             self.draw_rectangle(label) 
-        self.dd.delete_label(label)
-        self.cl.erase_annotation(label)
 
     def go_button_clicked(self, label):
         print(label, "go button clicked")

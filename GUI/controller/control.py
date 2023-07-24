@@ -343,14 +343,8 @@ class Controller():
                 self.points.append(self.end)
                 self.draw_annotation()
 
-<<<<<<< HEAD
     def label_clicked(self, frame, _label_name=None):
-        self.erase_annotation(frame)
-        # self.dd.load_label_dict()
-=======
-    def label_clicked(self, frame):
         self.erase_all_annotation()
->>>>>>> 8591e467d980d606bc580017b0ddc92e11264661
         frame_directory = self.dd.frame_label_dict[frame]
 
         for drawing_type in frame_directory:
@@ -372,11 +366,11 @@ class Controller():
                         Circle(coor[0], coor[1], fill=False, picker=True, label=label, edgecolor=color))
                     
                 elif drawing_type == "freehand":
-                    for coor in fh:
-                        x_coords, y_coords = zip(*fh)
+                    for c in coor:
+                        x_coords, y_coords = zip(*coor)
                         annotation = self.ax.plot(
                             x_coords, y_coords, picker=True, label=label, color=color)
-                if _label_name:
+                if _label_name == label:
                     self.selector_change_edge(annotation, color, line_width=3)
                     
             
