@@ -139,6 +139,25 @@ class DcmData():
             print(f"An error occured while deleting a file '{file_name}")
 
     def delete_label(self, _label_name):
+<<<<<<< HEAD
+        # try:
+        #     if _label_name in self.all_label:
+        #         self.all_label.remove(_label_name)
+        # except KeyError:
+        #     print("Not Member in all label")
+        try:
+            frame_dict = self.frame_label_dict[self.frame_number]
+            #frame_dict.keys() : ”type”
+            #frame_dict.values() : {”label id1”: {coords: [], color : “” }
+            for label_dict in frame_dict.values():
+                if _label_name in label_dict:
+                    u = label_dict.pop(_label_name)
+                    print("pop 한 data : ", u)
+                    break
+            print(f"라벨 정보 제거 후 : {self.frame_label_dict}")
+        except KeyError:
+            print("해당 프레임 넘버 키값이 없습니다.")
+=======
         #try:
         #    if _label_name in self.all_label:
         #        self.all_label.remove(_label_name)
@@ -154,12 +173,14 @@ class DcmData():
                 print("pop 한 data : ", u)
                 break
         print(f"라벨 정보 제거 후: {self.frame_label_dict}")
+>>>>>>> 8591e467d980d606bc580017b0ddc92e11264661
     
-    def modify_label_data(self, _label_name, _coor):
+    def modify_label_data(self, _label_name, _coor, _color):
         frame_dict = self.frame_label_dict[self.frame_number]
         for label_dict in frame_dict.values():
             if _label_name in label_dict:
-                label_dict[_label_name] = _coor
+                label_dict[_label_name]['coords'] = _coor
+                label_dict[_label_name]['color'] = _color
                 break
         print(self.frame_label_dict)
 
