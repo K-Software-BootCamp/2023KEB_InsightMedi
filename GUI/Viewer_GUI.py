@@ -47,14 +47,14 @@ class MyWindow(QMainWindow):
 
         for i in range(10):
             self.button_layout = QHBoxLayout()
-            label_name = "label %2d"%(i+1)
+            label_name = "label %d"%(i+1)
             self.label_button = QPushButton(label_name)
             self.label_button.setStyleSheet("color: gray; height: 30px; width: 120px;")
             self.label_button.clicked.connect(partial(self.label_button_clicked, label_name))
 
             self.go_button = QPushButton("GO")
-            self.go_button.clicked.connect(partial(self.go_button_clicked, label_name))
             self.go_button.setStyleSheet("color: gray; height: 30px; width: 50px;")
+            self.go_button.clicked.connect(partial(self.go_button_clicked, label_name))
 
             self.button_layout.addWidget(self.label_button)
             self.button_layout.addWidget(self.go_button)
@@ -86,8 +86,8 @@ class MyWindow(QMainWindow):
         grid_box.addWidget(self.slider, 4, 0)
 
         # column 1
-        grid_box.addWidget(self.label_scroll_area, 0, 1, 3, 1)
-        grid_box.addWidget(self.play_button, 3, 1)
+        grid_box.addWidget(self.label_scroll_area, 0, 1, 2, 1)
+        grid_box.addWidget(self.play_button, 2, 1)
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
@@ -304,13 +304,19 @@ class MyWindow(QMainWindow):
     def go_button_clicked(self, label):
         print(label, "go button clicked")
 
+        found_label = False
+
         for frame, frame_dict in self.dd.frame_label_dict.items():
             for drawing_type, label_dict in frame_dict.items():
                 if label in label_dict.keys():
                     first_frame = frame
+                    found_label = True
                     break
+            if found_label == True:
+                break
         
-        self.label_clicked(first_frame)
+        if found_label:
+            self.label_clicked(first_frame)
 
     def delete_total_label(self):
         #frame 이동 버튼들 전부 제거하기
@@ -453,26 +459,38 @@ class MyWindow(QMainWindow):
         self.setCursor(Qt.OpenHandCursor)
         self.cl.init_draw_mode("windowing")
 
-    def draw_straight_line(self):
-        self.setCursor(Qt.CrossCursor)
-        self.cl.init_draw_mode("line")
+    def draw_straight_line(self, label=False):
+        if label or self.cl.selector_mode == "Drawing":
+            self.setCursor(Qt.CrossCursor)
+            self.cl.init_draw_mode("line", label)
+        else:
+            draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
+    
+    def draw_circle(self, label=False):
+        if label or self.cl.selector_mode == "Drawing":
+            self.setCursor(Qt.CrossCursor)
+            self.cl.init_draw_mode("circle", label)
+        else:
+            draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
-    def draw_circle(self):
-        self.setCursor(Qt.CrossCursor)
-        self.cl.init_draw_mode("circle")
-
-    def draw_rectangle(self):
-        self.setCursor(Qt.CrossCursor)
-        self.cl.init_draw_mode("rectangle")
+    def draw_rectangle(self, label=False):
+        if label or self.cl.selector_mode == "Drawing":
+            self.setCursor(Qt.CrossCursor)
+            self.cl.init_draw_mode("rectangle", label)
+        else:
+            draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
     def draw_curve(self):
         # 곡선 그리기 기능 구현
         pass
 
-    def draw_freehand(self):
+    def draw_freehand(self, label=False):
         # 자유형 그리기 기능 구현
-        self.setCursor(Qt.CrossCursor)
-        self.cl.init_draw_mode("freehand")
+        if label or self.cl.selector_mode == "Drawing":
+            self.setCursor(Qt.CrossCursor)
+            self.cl.init_draw_mode("freehand")
+        else:
+            draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
     def delete_all(self):
         self.setCursor(Qt.ArrowCursor)
