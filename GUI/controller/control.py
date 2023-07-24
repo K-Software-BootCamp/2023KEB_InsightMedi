@@ -53,15 +53,14 @@ class Controller():
                 else:
                     self.annotation.remove()    
 
-            self.dd.set_new_label_name()
-            label_class = self.dd.label_name
+            label_class = self.label_name
             
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
                 self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color=color)[0]
                 if self.is_drawing is False:
-                    self.dd.add_label("line", ((x[0], y[0]), (x[1], y[1])), color)
+                    self.dd.add_label("line", label_class, ((x[0], y[0]), (x[1], y[1])), color)
 
             elif self.annotation_mode == "rectangle":
                 width = abs(self.start[0] - self.end[0])
@@ -71,7 +70,7 @@ class Controller():
                 self.annotation = self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, picker=True, label=label_class, edgecolor=color))
                 if self.is_drawing is False:
-                    self.dd.add_label("rectangle", (x, y, width, height), color)
+                    self.dd.add_label("rectangle", label_class, (x, y, width, height), color)
 
             elif self.annotation_mode == "circle":
                 dx = self.end[0] - self.start[0]
@@ -81,14 +80,14 @@ class Controller():
                 self.annotation = self.ax.add_patch(
                     Circle(center, radius, fill=False, picker=True, label=label_class, edgecolor=color))
                 if self.is_drawing is False:
-                    self.dd.add_label("circle", (center, radius), color)
+                    self.dd.add_label("circle", label_class, (center, radius), color)
 
             elif self.annotation_mode == "freehand":
                 x, y = zip(*self.points)
                 self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color=color)
                 if self.is_drawing is False:
                     self.points = []
-                    self.dd.add_label("freehand", self.points, color)
+                    self.dd.add_label("freehand", label_class, self.points, color)
 
             elif self.annotation_mode == "windowing":
                 dd = self.dd
@@ -139,9 +138,10 @@ class Controller():
         cid6 = self.canvas.mpl_connect('button_release_event', self.on_pan_mouse_release)
         self.cid = [cid4, cid5, cid6]
 
-    def init_draw_mode(self, mode):
+    def init_draw_mode(self, mode, label):
         # 직선 그리기 기능 구현
         print(mode)
+        self.label_name = label
         self.annotation_mode = mode
         self.draw_init()
         # status bar변경하는 함수 포인터를 Vierwer_Gui로부터 받아오기
@@ -314,7 +314,6 @@ class Controller():
 
     def label_clicked(self, frame):
         self.erase_annotation()
-        self.dd.load_label_dict()
         frame_directory = self.dd.frame_label_dict[frame]
 
         for drawing_type in frame_directory:

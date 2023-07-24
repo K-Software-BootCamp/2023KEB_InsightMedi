@@ -20,7 +20,6 @@ class DcmData():
 
         self.label_id = 0
         self.label_name = f"label {self.label_id}"
-        self.all_label = set()
 
         self.ds = None
         self.pixel = None
@@ -69,11 +68,6 @@ class DcmData():
                         for key in t:
                             frame_dict[key] = t[key]
                         self.frame_label_dict[frame_number] = frame_dict
-                        
-                        # all label에 추가
-                        for drawing_type in frame_dict.keys():
-                            for label in frame_dict[drawing_type].keys():
-                                self.all_label.add(label)
 
                 except FileNotFoundError:
                     pass
@@ -87,7 +81,7 @@ class DcmData():
                 f.write(json.dumps(self.frame_label_dict[key]))
     
     # {"frame_number”: {”type”: {”label id1”: {coords: [], color : “” }}, “label id2”: [coords]}
-    def add_label(self, drawing_type, coords, color="red"):
+    def add_label(self, drawing_type, label_name, coords, color="red"):
         #print("전체 frame별 label dictionary", self.frame_label_dict)
         try:
             frame_dict = self.frame_label_dict[self.frame_number]
@@ -103,16 +97,13 @@ class DcmData():
             frame_dict[drawing_type] = {}
             label_type_dict = frame_dict[drawing_type]
         
-        #self.set_new_label_name()
-        
-        print("추가될 label 이름:", self.label_name)
+        print("추가될 label 이름:", label_name)
         # frame_label_dict에 label data 저장
         label_data_dict = {}
         label_data_dict['coords'] = coords
         label_data_dict['color'] = color
 
-        label_type_dict[self.label_name] = label_data_dict
-        self.all_label.add(self.label_name)
+        label_type_dict[label_name] = label_data_dict
         print("labeel 그려진 이후 frame_label_dict\n", self.frame_label_dict)
         #ld[key].append(label_dict)
         #print("확인",ld)
@@ -175,27 +166,3 @@ class DcmData():
                 label_dict[_label_name] = _coor
                 break
         print(self.frame_label_dict)
-            
-    def set_new_label_name(self, name = False):
-        #print(self.frame_label_dict)
-        #print(self.frame_number)
-        if name == False or name in self.all_label:
-            try:
-                if name in self.all_label:
-                    print("이름이 동일한 label이 존재합니다. ")
-
-                self.label_id = 0
-                self.label_name = f"label {self.label_id}"
-                
-                for _ in range(len(self.all_label)):
-                    if self.label_name in self.all_label:
-                        self.label_id += 1
-                        self.label_name = f"label {self.label_id}"
-                
-                self.all_label.add(self.label_name)
-            except:
-                pass
-
-        else:
-            self.label_name = name
-            self.all_label.add(self.label_name)
