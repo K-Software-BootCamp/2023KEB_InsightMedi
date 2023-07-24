@@ -9,7 +9,7 @@ from matplotlib.patches import Circle, Rectangle
 from matplotlib.lines import Line2D
 from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 from data.dcm_data import DcmData
-
+import random
 
 class Controller():
     def __init__(self, dd: DcmData, canvas: FigureCanvas, gui) -> None:
@@ -53,7 +53,7 @@ class Controller():
                     self.annotation.remove()    
 
             # self.dd.set_new_label_name()
-            label_class = self.dd.label_name
+            label_class = self.label_name
             
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
@@ -152,7 +152,7 @@ class Controller():
             #     #선택된 artist가 있고 버튼을 누르면 지웁니다.
             #     self.artist.remove()
             #     self.canvas.draw()
-            print("in the init selecotr mode delelte")
+            print("in the init selector mode delete")
             self.selector_mode = 'selector'
             self.annotation_mode = mode
             cid4 = self.canvas.mpl_connect('key_press_event', self.selector_key_on_press)
@@ -169,27 +169,30 @@ class Controller():
         
         self.cid.extend([cid0, cid1, cid2, cid3])
         # print(self.cid)
-    
+    def get_color(self, annotation):
+        if isinstance(annotation, Line2D):
+            return annotation.get_color()
+        else:
+            return annotation.get_edgecolor()
     def selector_on_pick(self, event):
         # print(dir(event))
         #기존의 선택된 artist의 색깔을 원상태인 빨간색으로 바꿔줍니다.
         if self.artist is not None and event.artist != self.artist:
-            self.selector_change_color("red")
+            color = self.get_color(self.artist)
+            self.selector_change_edge(self.artist, color)
 
         if self.selector_mode == 'selector':
             #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
             self.artist = event.artist
-            self.selector_change_color("blue")
+            color = self.get_color(self.artist)
+            self.selector_change_edge(self.artist, color, 3)
             # print(dir(self.artist))
             print(f"label name : {self.artist.get_label()}")
             if self.annotation_mode == 'delete':
                 try:
                     self.artist = event.artist
-                    self.delete_label(self.artist.get_label())
                     self.artist.remove()
-                    #label button과 frame_label_dict에서 해당 라벨 삭제
-                    # self.dd.frame_label_dict[self.dd.frame_number][self.dd.label_class].delete()
-                    # self.dd.delete_label_file
+                    self.delete_label(event.artist.get_label())
                 except AttributeError as e:
                     print(e)
         self.canvas.draw()
@@ -197,7 +200,7 @@ class Controller():
     
     def delete_label(self, label_name):
         """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 비활성화하고 데이터 지우는 순차적 구조입니다."""
-        self.gui.delete_label_button(label_name)
+        self.gui.disable_label_button(label_name)
         
     def selector_on_press(self, event):
         """ 라벨들 선택하면 self.press에 x,y 데이터 저장하는 기능입니다. """
@@ -259,8 +262,8 @@ class Controller():
         ret_points = None
         if isinstance(self.artist, Line2D):
             #free hand
-            print(len(cc[0]))
-            print(cc[0][0], cc[1][0])
+            # print(len(cc[0]))
+            # print(cc[0][0], cc[1][0])
             ret_points = [(cc[0][i], cc[1][i]) for i in range(len(cc[0]))]
         elif isinstance(self.artist, Rectangle):
             ret_points = (cc[0], cc[1], self.artist.get_width(), self.artist.get_height())
@@ -269,10 +272,11 @@ class Controller():
             ret_points = (self.artist.get_center(), self.artist.get_radius())
             
             
-        print(ret_points)
+        # print(ret_points)
             
         # print("MODIFY _ LABEL _ END")
-        self.dd.modify_label_data(self.artist.get_label(), ret_points)
+        color = self.get_color(self.artist)
+        self.dd.modify_label_data(self.artist.get_label(), ret_points, color)
         self.press = None
 
     def selector_key_on_press(self, event):
@@ -281,27 +285,54 @@ class Controller():
         if event.key == "delete":
             print("delete press")
 
-    def selector_change_color(self, color):
+    def selector_change_edge(self, annotation, color, line_width=1):
         if isinstance(self.artist, Line2D):
-            self.artist.set_color(color)
+            annotation.set_color(color)
         else:
-            self.artist.set_edgecolor(color)
+            annotation.set_edgecolor(color)
+
+        annotation.set_linewidth(line_width)
+    
+    def random_bright_color(self):
+    # 랜덤한 RGB 값을 생성합니다.
+        red = random.randint(0, 255)
+        green = random.randint(0, 255)
+        blue = random.randint(0, 255)
+
+        # 밝기 조정을 위한 랜덤한 계수를 생성합니다.
+        brightness_factor = random.uniform(0.5, 1.0)  # 0.5부터 1.0 사이의 값을 가집니다.
+
+        # RGB 값에 밝기 조정을 적용합니다.
+        red = int(red * brightness_factor)
+        green = int(green * brightness_factor)
+        blue = int(blue * brightness_factor)
+
+        # RGB 값을 16진수 색상 코드로 변환합니다.
+        hex_color = "#{:02x}{:02x}{:02x}".format(red, green, blue)
+
+        return hex_color
 
     def on_mouse_press(self, event):
         if event.button == 1:
             self.is_drawing = True
+            if self.artist:
+                self.selector_change_edge(self.artist, self.get_color(self.artist))
             self.start = (event.xdata, event.ydata)
+            self.color = self.random_bright_color()
 
     def on_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
-            self.draw_annotation()
+            self.draw_annotation(self.color)
 
     def on_mouse_release(self, event):
         if event.button == 1:
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
-            self.draw_annotation()
+            self.draw_annotation(self.color)
+            self.artist = self.annotation
+            self.selector_change_edge(self.artist, self.get_color(self.artist), 3)
+            self.canvas.draw()
             self.annotation = None
             self.gui.selector()
 
@@ -312,13 +343,9 @@ class Controller():
                 self.points.append(self.end)
                 self.draw_annotation()
 
-    def label_clicked(self, frame):
-<<<<<<< HEAD
+    def label_clicked(self, frame, _label_name=None):
         self.erase_annotation(frame)
-        self.dd.load_label_dict()
-=======
-        self.erase_annotation()
->>>>>>> c0f3289b8b081d8d3860f54e827eec3488c73f8c
+        # self.dd.load_label_dict()
         frame_directory = self.dd.frame_label_dict[frame]
 
         for drawing_type in frame_directory:
@@ -326,30 +353,27 @@ class Controller():
             for label in label_directory:
                 ld = label_directory[label]
                 #print("\nld:", ld)
+                coor = ld["coords"]
+                color = ld["color"]
+                annotation = None
                 if drawing_type == "line":
-                    coor = ld["coords"]
-                    color = ld["color"]
-                    self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, color=color)
-                    
-                if drawing_type == "rectangle":
-                    coor = ld["coords"]
-                    color = ld["color"]
+                    annotation = self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, label=label, color=color)
+                elif drawing_type == "rectangle":
                     #print("현재 label은 사각형임", ld['rectangle'])
-                    self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
-                                                    picker=True, edgecolor=color))
-                if drawing_type == "circle":
-                    coor = ld["coords"]
-                    color = ld["color"]
-                    self.ax.add_patch(
-                        Circle(coor[0], coor[1], fill=False, picker=True, edgecolor=color))
+                    annotation = self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
+                                                    picker=True, label=label, edgecolor=color))
+                elif drawing_type == "circle":
+                    annotation = self.ax.add_patch(
+                        Circle(coor[0], coor[1], fill=False, picker=True, label=label, edgecolor=color))
                     
-                if drawing_type == "freehand":
-                    fh = ld["coords"]
-                    color = ld["color"]
+                elif drawing_type == "freehand":
                     for coor in fh:
                         x_coords, y_coords = zip(*fh)
-                        self.ax.plot(
-                            x_coords, y_coords, picker=True, color=color)
+                        annotation = self.ax.plot(
+                            x_coords, y_coords, picker=True, label=label, color=color)
+                if _label_name:
+                    self.selector_change_edge(annotation, color, line_width=3)
+                    
             
         self.canvas.draw()
 
@@ -366,7 +390,7 @@ class Controller():
     
     def erase_annotation(self, _label_name):
         for patch in self.ax.patches:
-            print(dir(patch))
+            # print(dir(patch))
             if patch.get_label() == _label_name:
                 patch.remove()
         for patch in self.ax.lines:
@@ -374,43 +398,14 @@ class Controller():
                 patch.remove()
         self.canvas.draw()
 
-    def erase_all_annotation(self, erase_dict=False):
+    def erase_all_annotation(self):
         for patch in self.ax.patches:
             patch.remove()
         for patch in self.ax.lines:
             patch.remove()
         self.canvas.draw()
 
-        if erase_dict:
-            if self.dd.frame_number in self.dd.frame_label_dict:
-                del self.dd.frame_label_dict[self.dd.frame_number]
-            #self.dd.frame_label_dict[self.dd.frame_number] = copy.deepcopy(
-            #    self.dd.label_dict_schema)
-            print("초기화된 frame_label_dict", self.dd.frame_label_dict)
 
-    def mp4_windowing_change(self, dd: DcmData, dx: float, dy: float):
-        pass
-        
-        # print(type(frame)) : ndarray
-        # print(frame.shape) : (720, 1280, 3)
-        # print(b, g, r)
-        # dd.video_wl = round(dd.video_wl + dx, 2)
-        # dd.video_ww = round(dd.video_ww - dy, 2)
-        # print(dd.video_wl, dd.video_ww)
-        # # cv2.convertScaleAbs(frame, frame, alpha=(255.0 / dd.video_ww), beta=(dd.video_wl - dd.video_ww / 2))
-        # frame = self.frame_apply_windowing(dd, dd.image)
-        # self.change_status_bar()
-        # # print(type(frame))
-        # self.img_show(frame, clear=True)
-
-    def frame_apply_windowing(self, dd, frame):
-        pass
-        # b, g, r = cv2.split(frame)
-        # r = cv2.convertScaleAbs(r, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        # g = cv2.convertScaleAbs(g, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        # b = cv2.convertScaleAbs(b, alpha=abs(255 / dd.video_wl), beta=(dd.video_wl - dd.video_ww / 2))
-        # return cv2.merge((b, g, r))
-        
     def dcm_windowing_change(self, dd, dx, dy):
         """
         windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.  

@@ -291,13 +291,13 @@ class MyWindow(QMainWindow):
         # if self.dd.frame_label_check(label):
         # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
         if self.cl.annotation_mode == "line":
-            self.draw_straight_line()
+            self.draw_straight_line(label)
         elif self.cl.annotation_mode == "circle":
-            self.draw_circle()
+            self.draw_circle(label)
         elif self.cl.annotation_mode == "freehand":
-            self.draw_freehand()
+            self.draw_freehand(label)
         else:
-            self.draw_rectangle() 
+            self.draw_rectangle(label) 
         self.dd.delete_label(label)
         self.cl.erase_annotation(label)
 
@@ -316,16 +316,18 @@ class MyWindow(QMainWindow):
                 break
         
         if found_label:
-            self.label_clicked(first_frame)
+            self.label_clicked(first_frame, label)
 
-    def delete_total_label(self):
+    def disable_total_label(self):
         #frame 이동 버튼들 전부 제거하기
-        while self.label_layout.count():
-            item = self.label_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+        for _label_name in self.buttons:
+            button_list = self.buttons[_label_name]
+            button_list[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
+            button_list[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
+            self.dd.delete_label(_label_name)
         self.label_layout.update()
+            
+        #data에서 해당 라벨이름 정보 제거하기
     
     def delete_frame_button(self, frame):
         # FIXME : 특정 frame에 있는 label들 비활성화 화기
@@ -339,7 +341,7 @@ class MyWindow(QMainWindow):
             print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
         self.label_layout.update()
 
-    def delete_label_button(self, _label_name):
+    def disable_label_button(self, _label_name):
         #특정 label 버튼 볼드체 풀기
         if _label_name in self.buttons:
             button_list = self.buttons[_label_name]
@@ -349,19 +351,19 @@ class MyWindow(QMainWindow):
             print(f"{_label_name} 라벨에 대한 버튼 비활성화됨")
         else:
             print(f"{_label_name} 라벨에 대한 버튼을 찾을 수 없음")
-        self.dd.delete_label(_label_name)
         self.label_layout.update()
+            
+        #data에서 해당 라벨이름 정보 제거하기
+        self.dd.delete_label(_label_name)
     
-    def label_clicked(self, frame):
+    def label_clicked(self, frame, label):
         #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
         self.setCursor(Qt.ArrowCursor)
         if self.dd.file_mode == "mp4":
             self.dd.frame_number = frame
             self.slider.setValue(frame)
             
-        elif self.dd.file_mode == 'dcm':
-            #dcm 파일은 frame number 0값의 라벨 버튼이 존재.
-            self.cl.label_clicked(frame)
+        self.cl.label_clicked(frame, label)
 
     def save(self):
         # 저장 기능 구현
@@ -459,37 +461,37 @@ class MyWindow(QMainWindow):
         self.setCursor(Qt.OpenHandCursor)
         self.cl.init_draw_mode("windowing")
 
-    def draw_straight_line(self, label=False):
-        if label or self.cl.selector_mode == "Drawing":
+    def draw_straight_line(self, label=None):
+        if label:
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("line", label)
         else:
+            self.cl.annotation_mode = "line"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
     
-    def draw_circle(self, label=False):
-        if label or self.cl.selector_mode == "Drawing":
+    def draw_circle(self, label=None):
+        if label:
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("circle", label)
         else:
+            self.cl.annotation_mode = "circle"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
-    def draw_rectangle(self, label=False):
-        if label or self.cl.selector_mode == "Drawing":
+    def draw_rectangle(self, label=None):
+        if label:
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("rectangle", label)
         else:
+            self.cl.annotation_mode = "rectangle"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
-    def draw_curve(self):
-        # 곡선 그리기 기능 구현
-        pass
-
-    def draw_freehand(self, label=False):
+    def draw_freehand(self, label=None):
         # 자유형 그리기 기능 구현
-        if label or self.cl.selector_mode == "Drawing":
+        if label:
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("freehand")
         else:
+            self.cl.annotation_mode = "freehand"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
     def delete_all(self):
@@ -499,10 +501,8 @@ class MyWindow(QMainWindow):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
-            self.cl.erase_annotation(erase_dict=True)    # canvas 위에 그려진 label 삭제
-            #self.delete_label(self.dd.frame_number)    # button 삭제하기
-            #self.dd.delete_label_file(self.dd.frame_number)    # label이 저장된 text file 삭제
-            print(self.dd.frame_label_dict)
+            self.cl.erase_all_annotation()    # canvas 위에 그려진 label 삭제
+            self.disable_total_label()
 
     def zoom_in(self):
         self.cl.init_zoom_mode("in")
