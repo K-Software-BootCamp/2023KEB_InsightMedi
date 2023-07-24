@@ -269,15 +269,22 @@ class MyWindow(QMainWindow):
         else:
             print("Open fail")
 
-    def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
-        #print(ld)
-        for frame, frame_dict in ld.items():
-            for drawing_type, label_dict in frame_dict.itmes():
-                for label_name in label_dict.keys():
-                    if label_name in self.buttons:
-                        button_list = self.buttons[label_name]
-                        button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
-                        button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
+    #def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
+    #    all_labels = set()
+    #    for frame in ld:
+    #        labels = self.dd.frame_label_check(frame)
+    #        if labels:
+    #            for label in labels:
+    #                all_labels.add(label)
+    #    
+    #    for label_name in self.buttons:
+    #        temp_label_buttons = self.buttons[label_name]
+    #        if label_name in all_labels:
+    #            temp_label_buttons[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
+    #            temp_label_buttons[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
+    #        else:
+    #            temp_label_buttons[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
+    #            temp_label_buttons[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
 
     
     def label_button_clicked(self, label):
@@ -294,6 +301,8 @@ class MyWindow(QMainWindow):
         if self.dd.frame_label_check(self.dd.frame_number):
             self.dd.delete_label(label)
             self.cl.erase_annotation(label)
+        
+        print("삭제 됐나 확인:",self.dd.frame_label_dict)
 
         if self.cl.annotation_mode == "line":
             self.draw_straight_line(label)
