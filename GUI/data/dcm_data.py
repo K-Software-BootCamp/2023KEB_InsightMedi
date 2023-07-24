@@ -19,7 +19,6 @@ class DcmData():
         self.frame_label_dict = {}  # {"frame_number”: {”type”: {”label id1”: {coords: [], color : “” }}, “label id2”: [coords]}
 
         self.label_id = 0
-        self.label_name = f"label {self.label_id}"
 
         self.ds = None
         self.pixel = None
@@ -140,11 +139,11 @@ class DcmData():
             print(f"An error occured while deleting a file '{file_name}")
 
     def delete_label(self, _label_name):
-        # try:
-        #     if _label_name in self.all_label:
-        #         self.all_label.remove(_label_name)
-        # except KeyError:
-        #     print("Not Member in all label")
+        #try:
+        #    if _label_name in self.all_label:
+        #        self.all_label.remove(_label_name)
+        #except KeyError:
+        #    print("Not Member in all label")
         
         frame_dict = self.frame_label_dict[self.frame_number]
         #frame_dict.keys() : ”type”
@@ -154,7 +153,7 @@ class DcmData():
                 u = label_dict.pop(_label_name)
                 print("pop 한 data : ", u)
                 break
-        print(f"라벨 정보 제거 후 : {self.frame_label_dict}")
+        print(f"라벨 정보 제거 후: {self.frame_label_dict}")
     
     def modify_label_data(self, _label_name, _coor):
         frame_dict = self.frame_label_dict[self.frame_number]
@@ -163,3 +162,18 @@ class DcmData():
                 label_dict[_label_name] = _coor
                 break
         print(self.frame_label_dict)
+
+    def frame_label_check(self, frame):
+        try:
+            frame_dict = self.frame_label_dict[frame]
+            label_list = []
+            for _, label_dict in frame_dict.items():
+                for label in label_dict:
+                    label_list.append(label)
+            
+            if len(label_list) == 0:
+                return False
+            else:
+                return label_list
+        except:
+            return False

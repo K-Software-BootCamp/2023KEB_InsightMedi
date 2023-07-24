@@ -53,7 +53,7 @@ class Controller():
                     self.annotation.remove()    
 
             # self.dd.set_new_label_name()
-            label_class = self.dd.label_name
+            label_class = self.label_name
             
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
@@ -313,12 +313,7 @@ class Controller():
                 self.draw_annotation()
 
     def label_clicked(self, frame):
-<<<<<<< HEAD
-        self.erase_annotation(frame)
-        self.dd.load_label_dict()
-=======
-        self.erase_annotation()
->>>>>>> c0f3289b8b081d8d3860f54e827eec3488c73f8c
+        self.erase_all_annotation()
         frame_directory = self.dd.frame_label_dict[frame]
 
         for drawing_type in frame_directory:
