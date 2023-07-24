@@ -343,9 +343,14 @@ class Controller():
                 self.points.append(self.end)
                 self.draw_annotation()
 
+<<<<<<< HEAD
     def label_clicked(self, frame, _label_name=None):
         self.erase_annotation(frame)
         # self.dd.load_label_dict()
+=======
+    def label_clicked(self, frame):
+        self.erase_all_annotation()
+>>>>>>> 8591e467d980d606bc580017b0ddc92e11264661
         frame_directory = self.dd.frame_label_dict[frame]
 
         for drawing_type in frame_directory:

@@ -285,11 +285,16 @@ class MyWindow(QMainWindow):
         button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
         button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
         print(label, 'button clicked')
-        self.dd.label_name = label
+        
         # TODO : 해당 label을 frame에서 지운 후, label 하나 그리면 그리기 모드 종료되고, 해당 label 선택된 상태로 만들기 
         # (일단 사각형 그리기로 했는데, 추후 수정이 필요합니다)
         # if self.dd.frame_label_check(label):
         # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
+
+        if self.dd.frame_label_check(self.dd.frame_number):
+            self.dd.delete_label(label)
+            self.cl.erase_annotation(label)
+
         if self.cl.annotation_mode == "line":
             self.draw_straight_line(label)
         elif self.cl.annotation_mode == "circle":
@@ -317,6 +322,8 @@ class MyWindow(QMainWindow):
         
         if found_label:
             self.label_clicked(first_frame, label)
+            print("go button 누른 후 현재 frame number", self.dd.frame_number)
+            print("frame_label_check 함수 확인:", self.dd.frame_label_check(self.dd.frame_number))
 
     def disable_total_label(self):
         #frame 이동 버튼들 전부 제거하기
