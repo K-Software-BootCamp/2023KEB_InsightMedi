@@ -63,7 +63,7 @@ class MyWindow(QMainWindow):
             self.label_go_buttons = [self.label_button, self.go_button]
             self.buttons[label_name] = self.label_go_buttons
 
-        print(self.buttons)
+        # print(self.buttons)
         
         # slider and play button
         self.slider = QSlider(Qt.Horizontal)
@@ -95,7 +95,7 @@ class MyWindow(QMainWindow):
         self.statusBar().showMessage("")
 
         #Create Controller
-        self.cl = Controller(self.dd, self.canvas, self.set_status_bar, self.delete_label_button)
+        self.cl = Controller(self.dd, self.canvas, self)
         '''
         파일 도구
         '''
@@ -127,9 +127,6 @@ class MyWindow(QMainWindow):
 
         toolbar.addSeparator()  # 구분선
 
-        self.is_panning = False
-        self.pan_start = None
-
         cursor_action = QAction(
             QIcon('icon/cursor_icon.png'), "Selector", self)
         cursor_action.triggered.connect(self.selector)
@@ -157,22 +154,19 @@ class MyWindow(QMainWindow):
         rectangle_action.triggered.connect(self.draw_rectangle)
         toolbar.addAction(rectangle_action)
 
-        # Curve action
-        curve_action = QAction(QIcon('icon/curve_icon.png'), "Curve", self)
-        curve_action.triggered.connect(self.draw_curve)
-        toolbar.addAction(curve_action)
-
         # Freehand action
         freehand_action = QAction(
             QIcon('icon/freehand_icon.png'), "Free Hand", self)
         freehand_action.triggered.connect(self.draw_freehand)
         toolbar.addAction(freehand_action)
 
+        # delete action
         delete_action = QAction(
             QIcon('icon/delete_icon.png'), "Delete", self)
         delete_action.triggered.connect(self.delete)
         toolbar.addAction(delete_action)
         
+        # delete all action
         delete_all_action = QAction(
             QIcon('icon/delete_all_icon.png'), "Delete All", self)
         delete_all_action.triggered.connect(self.delete_all)
@@ -220,11 +214,11 @@ class MyWindow(QMainWindow):
                 wl = self.dd.ds.WindowCenter
                 ww = self.dd.ds.WindowWidth
                 # print(wl, ww)
-                self.statusBar().showMessage(f"WL: {wl} WW:{ww} " + smam)
+                self.statusBar().showMessage(f"WL: {wl} WW:{ww} {smam}")
             elif self.dd.file_mode == 'mp4':
                 vs = self.video_status
                 self.statusBar().showMessage(f"Video Stauts: {vs} "
-                                            f"Frame: {self.dd.frame_number} / {self.dd.total_frame} " + smam)
+                                            f"Frame: {self.dd.frame_number} / {self.dd.total_frame} {smam}")
         except (AttributeError, TypeError):
             self.statusBar().showMessage(smam)
             
@@ -291,10 +285,21 @@ class MyWindow(QMainWindow):
         button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
         button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
         print(label, 'button clicked')
-
+        self.dd.label_name = label
         # TODO : 해당 label을 frame에서 지운 후, label 하나 그리면 그리기 모드 종료되고, 해당 label 선택된 상태로 만들기 
         # (일단 사각형 그리기로 했는데, 추후 수정이 필요합니다)
-        self.draw_rectangle()    # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
+        # if self.dd.frame_label_check(label):
+        # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
+        if self.cl.annotation_mode == "line":
+            self.draw_straight_line()
+        elif self.cl.annotation_mode == "circle":
+            self.draw_circle()
+        elif self.cl.annotation_mode == "freehand":
+            self.draw_freehand()
+        else:
+            self.draw_rectangle() 
+        self.dd.delete_label(label)
+        self.cl.erase_annotation(label)
 
     def go_button_clicked(self, label):
         print(label, "go button clicked")
@@ -309,38 +314,37 @@ class MyWindow(QMainWindow):
 
     def delete_total_label(self):
         #frame 이동 버튼들 전부 제거하기
-        while self.frame_layout.count():
-            item = self.frame_layout.takeAt(0)
+        while self.label_layout.count():
+            item = self.label_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
-        self.frame_layout.update()
+        self.label_layout.update()
     
     def delete_frame_button(self, frame):
         # FIXME : 특정 frame에 있는 label들 비활성화 화기
         if frame in self.buttons:
             #button_to_remove = self.buttons[frame]
-            #self.frame_layout.removeWidget(button_to_remove)
+            #self.label_layout.removeWidget(button_to_remove)
             #button_to_remove.deleteLater()
             del self.buttons[frame]
             print(f"{frame} 프레임에 대한 버튼 제거됨")
         else:
             print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
-        self.frame_layout.update()
+        self.label_layout.update()
 
     def delete_label_button(self, _label_name):
-        #특정 label 버튼 제거하기
-        if _label_name in self.label_buttons:
-            button_to_remove = self.label_buttons[_label_name]
-            self.label_layout.removeWidget(button_to_remove)
-            button_to_remove.deleteLater()
-            del self.label_buttons[_label_name]
-            print(self.label_buttons)
-            print(f"{_label_name} 라벨에 대한 버튼 제거됨")
+        #특정 label 버튼 볼드체 풀기
+        if _label_name in self.buttons:
+            button_list = self.buttons[_label_name]
+            button_list[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
+            button_list[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
+            print(self.buttons)
+            print(f"{_label_name} 라벨에 대한 버튼 비활성화됨")
         else:
             print(f"{_label_name} 라벨에 대한 버튼을 찾을 수 없음")
         self.dd.delete_label(_label_name)
-        self.frame_layout.update()
+        self.label_layout.update()
     
     def label_clicked(self, frame):
         #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.

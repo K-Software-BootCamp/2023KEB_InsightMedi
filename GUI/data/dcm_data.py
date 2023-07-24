@@ -149,11 +149,11 @@ class DcmData():
             print(f"An error occured while deleting a file '{file_name}")
 
     def delete_label(self, _label_name):
-        try:
-            if _label_name in self.all_label:
-                self.all_label.remove(_label_name)
-        except KeyError:
-            print("Not Member in all label")
+        # try:
+        #     if _label_name in self.all_label:
+        #         self.all_label.remove(_label_name)
+        # except KeyError:
+        #     print("Not Member in all label")
         
         frame_dict = self.frame_label_dict[self.frame_number]
         #frame_dict.keys() : ”type”
@@ -163,10 +163,7 @@ class DcmData():
                 u = label_dict.pop(_label_name)
                 print("pop 한 data : ", u)
                 break
-        print(self.all_label)
-        print(self.frame_label_dict)
-                 
-        pass
+        print(f"라벨 정보 제거 후 : {self.frame_label_dict}")
     
     def modify_label_data(self, _label_name, _coor):
         frame_dict = self.frame_label_dict[self.frame_number]

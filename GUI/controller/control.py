@@ -12,9 +12,10 @@ from data.dcm_data import DcmData
 
 
 class Controller():
-    def __init__(self, dd: DcmData, canvas: FigureCanvas, set_status_bar, delete_label_button) -> None:
+    def __init__(self, dd: DcmData, canvas: FigureCanvas, gui) -> None:
         self.canvas = canvas
         self.dd = dd
+        self.gui = gui
         self.fig = canvas.figure
         self.ax = self.fig.add_subplot(111, aspect = 'auto')
 
@@ -36,8 +37,6 @@ class Controller():
         self.is_drawing = False
         self.is_panning = False
         self.pan_Start = None
-        self.change_status_bar = set_status_bar
-        self.delete_label_button = delete_label_button
 
         self.press=None
         self.artist = None
@@ -53,7 +52,7 @@ class Controller():
                 else:
                     self.annotation.remove()    
 
-            self.dd.set_new_label_name()
+            # self.dd.set_new_label_name()
             label_class = self.dd.label_name
             
             if self.annotation_mode == "line":
@@ -122,7 +121,7 @@ class Controller():
         self.is_drawing = False
         self.annotation = None
         self.selector_mode = "Drawing"
-        self.change_status_bar()
+        self.gui.set_status_bar()
         self.set_mpl_disconnect()
         if self.annotation_mode == "freehand":
             self.points = []
@@ -144,7 +143,6 @@ class Controller():
         print(mode)
         self.annotation_mode = mode
         self.draw_init()
-        # status bar변경하는 함수 포인터를 Vierwer_Gui로부터 받아오기
 
     def init_selector(self, mode):
         self.set_mpl_disconnect()
@@ -161,7 +159,7 @@ class Controller():
         elif mode == 'selector':
             self.selector_mode = mode
             self.annotation_mode = None
-        self.change_status_bar()
+        self.gui.set_status_bar()
         
         cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
         cid1 = self.canvas.mpl_connect('button_press_event', self.selector_on_press)
@@ -197,8 +195,8 @@ class Controller():
     
     
     def delete_label(self, label_name):
-        """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 지우고 데이터 지우는 순차적 구조입니다."""
-        self.delete_label_button(label_name)
+        """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 비활성화하고 데이터 지우는 순차적 구조입니다."""
+        self.gui.delete_label_button(label_name)
         
     def selector_on_press(self, event):
         """ 라벨들 선택하면 self.press에 x,y 데이터 저장하는 기능입니다. """
@@ -255,8 +253,8 @@ class Controller():
 
     def modify_label_data(self):
         cc = self.changed_coor
-        print("MODIFY _ LABEL _ DATA")
-        print(cc)
+        # print("MODIFY _ LABEL _ DATA")
+        # print(cc)
         ret_points = None
         if isinstance(self.artist, Line2D):
             #free hand
@@ -272,7 +270,7 @@ class Controller():
             
         print(ret_points)
             
-        print("MODIFY _ LABEL _ END")
+        # print("MODIFY _ LABEL _ END")
         self.dd.modify_label_data(self.artist.get_label(), ret_points)
         self.press = None
 
@@ -304,6 +302,7 @@ class Controller():
             self.end = (event.xdata, event.ydata)
             self.draw_annotation()
             self.annotation = None
+            self.gui.selector()
 
     def on_freehand_mouse_move(self, event):
         if self.is_drawing:
@@ -313,7 +312,7 @@ class Controller():
                 self.draw_annotation()
 
     def label_clicked(self, frame):
-        self.erase_annotation()
+        self.erase_annotation(frame)
         self.dd.load_label_dict()
         frame_directory = self.dd.frame_label_dict[frame]
 
@@ -359,8 +358,18 @@ class Controller():
         #self.ax.tick_params(axis = 'y', colors = 'gray')
         self.ax.axis("off")
         self.canvas.draw()
+    
+    def erase_annotation(self, _label_name):
+        for patch in self.ax.patches:
+            print(dir(patch))
+            if patch.get_label() == _label_name:
+                patch.remove()
+        for patch in self.ax.lines:
+            if patch.get_label() == _label_name:
+                patch.remove()
+        self.canvas.draw()
 
-    def erase_annotation(self, erase_dict=False):
+    def erase_all_annotation(self, erase_dict=False):
         for patch in self.ax.patches:
             patch.remove()
         for patch in self.ax.lines:
@@ -416,7 +425,7 @@ class Controller():
             # comparison = voi_lut_image == self.image
             # mismatch_count = np.count_nonzero(comparison == False)
             # print(mismatch_count)
-            self.change_status_bar()
+            self.gui.set_status_bar()
             self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
         except AttributeError:
             dd.ds.WindowCenter = 256
