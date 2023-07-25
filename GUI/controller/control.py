@@ -40,7 +40,6 @@ class Controller():
 
         self.press=None
         self.artist = None
-        self.changed_coor = None
 
     # mpl connect & disconnect
     def set_mpl_connect(self, *args):
@@ -112,7 +111,6 @@ class Controller():
         self.is_drawing = False
         self.start = None
         self.end = None
-    
         self.selector_mode = "windowing"
         self.annotation_mode = None
         self.gui.set_status_bar()
@@ -138,10 +136,10 @@ class Controller():
             annotation.set_edgecolor(color)
 
     def get_edge_thick(self, annotation):
-            return annotation.get_linewidth()
+        return annotation.get_linewidth()
 
     def set_edge_thick(self, annotation, line_width=1):
-            annotation.set_linewidth(line_width)
+        annotation.set_linewidth(line_width)
 
     def random_bright_color(self):
         # 랜덤한 RGB 값을 생성합니다.
@@ -171,11 +169,11 @@ class Controller():
             #현재 선택된 artist를 self.artist로 저장시켜 다른 함수에서 접근 가능하게 합니다. 
             self.select_only_current_edge(event.artist)
             self.artist = event.artist
-            print(f"label name : {self.artist.get_label()}")
+            # print(f"label name : {self.artist.get_label()}")
             if self.annotation_mode == 'delete':
                 self.artist.remove()
                 self.canvas.draw()
-                self.delete_label(event.artist.get_label())
+                self.delete_label(self.artist.get_label())
 
     def selector_on_press(self, event):
         """ 
@@ -203,7 +201,7 @@ class Controller():
             return
         
         self.press = (xdata, ydata), (event.xdata, event.ydata)
-        print(f"self press is {self.press}")
+        # print(f"self press is {self.press}")
 
     def selector_on_move(self, event):
         """마우스로 드래그하면 self.artist를 움직일 수 있게 합니다."""
@@ -290,7 +288,7 @@ class Controller():
                 self.annotation = self.ax.add_patch(
                     Rectangle((x, y), width, height, fill=False, picker=True, label=label_class, edgecolor=color))
                 if self.is_drawing is False:
-                    self.dd.add_label("rectangle", label_class, (x, y, width, height), color)
+                    self.dd.add_label("rectangle", label_class, ((x, y), width, height), color)
 
             elif self.annotation_mode == "circle":
                 dx = self.end[0] - self.start[0]
@@ -306,8 +304,8 @@ class Controller():
                 x, y = zip(*self.points)
                 self.annotation = self.ax.plot(x, y, picker=True, label=label_class, color=color)[0]
                 if self.is_drawing is False:
-                    self.points = []
                     self.dd.add_label("freehand", label_class, self.points, color)
+                    self.points = []
 
             self.set_edge_thick(self.annotation, line_width=3)
             self.canvas.draw()
@@ -323,6 +321,7 @@ class Controller():
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
             self.dcm_windowing_change()
+            self.label_clicked(self.dd.frame_number)
 
     def dcm_windowing_change(self):
         """
@@ -333,7 +332,6 @@ class Controller():
         dd = self.dd
         if dd.file_mode != 'dcm':
             return
-        
         dx = self.end[0] - self.start[0]
         dy = self.end[1] - self.start[1]
 
@@ -351,7 +349,7 @@ class Controller():
             # mismatch_count = np.count_nonzero(comparison == False)
             # print(mismatch_count)
             self.gui.set_status_bar()
-            self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
+            self.img_show(voi_lut_image, cmap='gray', clear=True)
         except AttributeError:
             dd.ds.WindowCenter = 255
             dd.ds.WindowWidth = 255
@@ -410,7 +408,7 @@ class Controller():
         현재 self.ax에서 주어진 annotation만 두께를 강조합니다.
 
         Args:
-            annotataion(matplotlib.lines.Line2D or matplotlib.patches.Rectangle): 선 또는 도형 객체입니다.
+            annotataion(artist): 선 또는 도형 객체입니다.
         """
         self.select_off_all()
         self.set_edge_thick(annotation, line_width=3)
@@ -440,28 +438,26 @@ class Controller():
             for label in label_directory:
                 ld = label_directory[label]
                 #print("\nld:", ld)
-                coor = ld["coords"]
+                coords = ld["coords"]
                 color = ld["color"]
                 annotation = None
                 if drawing_type == "line":
-                    annotation = self.ax.plot((coor[0], coor[2]), (coor[1], coor[3]), picker=True, label=label, color=color)
+                    annotation = self.ax.plot(coords[0], coords[1], picker=True, label=label, color=color)
                 elif drawing_type == "rectangle":
                     #print("현재 label은 사각형임", ld['rectangle'])
-                    annotation = self.ax.add_patch(Rectangle((coor[0], coor[1]), coor[2], coor[3], fill=False,
+                    annotation = self.ax.add_patch(Rectangle(coords[0], coords[1], coords[2], fill=False,
                                                     picker=True, label=label, edgecolor=color))
                 elif drawing_type == "circle":
                     annotation = self.ax.add_patch(
-                        Circle(coor[0], coor[1], fill=False, picker=True, label=label, edgecolor=color))
-                    
+                        Circle(coords[0], coords[1], fill=False, picker=True, label=label, edgecolor=color))
+
                 elif drawing_type == "freehand":
-                    for c in coor:
-                        x_coords, y_coords = zip(*coor)
-                        annotation = self.ax.plot(
-                            x_coords, y_coords, picker=True, label=label, color=color)
+                    x_coords, y_coords = zip(*coords)
+                    annotation = self.ax.plot(
+                        x_coords, y_coords, picker=True, label=label, color=color)[0]
                 if _label_name == label:
                     self.set_edge_thick(annotation, line_width=3)
-                    
-            
+
         self.canvas.draw()
 
     def img_show(self, img, cmap='viridis', init=False, clear=False):
