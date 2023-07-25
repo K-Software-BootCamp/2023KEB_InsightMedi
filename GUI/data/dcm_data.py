@@ -31,6 +31,7 @@ class DcmData():
         # self.video_ww = 255
 
     def open_file(self, fname, *args, **kwargs):
+        self.file_path = fname[0]
         self.file_extension = fname[0].split('/')[-1].split(".")[-1]
         self.file_name = fname[0].split('/')[-1].split(".")[0]
         self.file_dir = os.path.dirname(fname[0])

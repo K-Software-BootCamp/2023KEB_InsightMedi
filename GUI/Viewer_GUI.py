@@ -225,9 +225,9 @@ class MyWindow(QMainWindow):
     
     def set_status_bar(self):
         try:
-            if self.dd.file_dir:
-                self.statusBar().showMessage(self.dd.file_dir)
-        except:
+            if self.dd.file_path:
+                self.statusBar().showMessage(self.dd.file_path)
+        except: 
             self.statusBar().showMessage("")
 
     def set_screen_status(self):
@@ -334,7 +334,6 @@ class MyWindow(QMainWindow):
             self.cl.erase_annotation(label)
         
         print("삭제 됐나 확인:",self.dd.frame_label_dict)
-
         if self.cl.annotation_mode == "line":
             self.draw_straight_line(label)
         elif self.cl.annotation_mode == "circle":
