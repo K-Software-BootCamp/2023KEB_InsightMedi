@@ -139,14 +139,18 @@ class DcmData():
         except Exception as e:
             print(f"An error occured while deleting a file '{file_name}")
 
-    def delete_label(self, _label_name):
+    def delete_label(self, _label_name, frame = None):
         #try:
         #    if _label_name in self.all_label:
         #        self.all_label.remove(_label_name)
         #except KeyError:
         #    print("Not Member in all label")
-        
-        frame_dict = self.frame_label_dict[self.frame_number]
+        if frame:
+            frame_number = frame
+        else:
+            frame_number = self.frame_number
+            
+        frame_dict = self.frame_label_dict[frame_number]
         #frame_dict.keys() : ”type”
         #frame_dict.values() : {”label id1”: {coords: [], color : “” }
         for label_dict in frame_dict.values():

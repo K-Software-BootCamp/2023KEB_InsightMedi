@@ -156,15 +156,11 @@ class MyWindow(QMainWindow):
 
         toolbar.addSeparator()  # 구분선
 
+        # Selector action
         cursor_action = QAction(
             QIcon('icon/cursor_icon.png'), "Selector", self)
         cursor_action.triggered.connect(self.selector)
         toolbar.addAction(cursor_action)
-
-        palette_action = QAction(
-            QIcon('icon/palette_icon.png'), "Palette", self)
-        palette_action.triggered.connect(self.palette)
-        toolbar.addAction(palette_action)
         
         # Line action
         straightline_action = QAction(
@@ -329,8 +325,12 @@ class MyWindow(QMainWindow):
         # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
 
         for frame in self.dd.frame_label_dict:
-            if self.dd.frame_label_check(frame):
-                self.dd.delete_label(label)
+            print("모든 프레임 확인 중:",frame)
+            frame_labels = self.dd.frame_label_check(frame)
+            if frame_labels and label in frame_labels:
+                print(self.dd.frame_label_check(frame))
+                print("해당 프레임에 라벨이 있으면!")
+                self.dd.delete_label(label, frame)
                 self.cl.erase_annotation(label)
         
         print("삭제 됐나 확인:",self.dd.frame_label_dict)
@@ -459,13 +459,6 @@ class MyWindow(QMainWindow):
     def selector(self):
         self.setCursor(Qt.ArrowCursor)
         self.cl.init_selector("selector")
-    
-    def palette(self):
-        color = QColorDialog.getColor()
-        if color.isValid():
-            # 선택한 색상이 유효한 경우, 해당 색상 정보를 저장
-            self.selected_color = color
-            print(self.selected_color)
 
     def apply_windowing(self):
         self.setCursor(Qt.OpenHandCursor)
