@@ -508,7 +508,7 @@ class MyWindow(QMainWindow):
         # 자유형 그리기 기능 구현
         if label:
             self.setCursor(Qt.CrossCursor)
-            self.cl.init_draw_mode("freehand")
+            self.cl.init_draw_mode("freehand", label)
         else:
             self.cl.annotation_mode = "freehand"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
