@@ -469,7 +469,7 @@ class MyWindow(QMainWindow):
 
     def apply_windowing(self):
         self.setCursor(Qt.OpenHandCursor)
-        self.cl.init_draw_mode("windowing")
+        self.cl.init_windowing_mode()
 
     def draw_straight_line(self, label=None):
         if label:
@@ -520,9 +520,11 @@ class MyWindow(QMainWindow):
 
     def zoom_in(self):
         self.cl.init_zoom_mode("in")
+        self.cl.zoom(0.9)
 
     def zoom_out(self):
         self.cl.init_zoom_mode("out")
+        self.cl.zoom(1.1)
 
 
 if __name__ == "__main__":
