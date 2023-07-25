@@ -67,7 +67,7 @@ class Controller():
         self.selector_mode = "drawing"
         self.annotation_mode = mode
         print(f"Drawing mode : {mode}")
-        self.gui.set_status_bar()
+        self.gui.set_tool_status_label()
         self.set_mpl_disconnect()
         if self.annotation_mode == "freehand":
             self.points = []
@@ -92,7 +92,7 @@ class Controller():
         else:
             print("Unexpected mode name")
             return
-        self.gui.set_status_bar()
+        self.gui.set_tool_status_label()
 
         cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
         self.cid.append(cid0)
@@ -104,7 +104,7 @@ class Controller():
         self.is_panning = False
         self.selector_mode = 'zoom'
         self.annotation_mode = mode
-        self.gui.set_status_bar()
+        self.gui.set_tool_status_label()
         self.set_mpl_connect(self.on_pan_mouse_press, self.on_pan_mouse_move, self.on_pan_mouse_release)
 
     def init_windowing_mode(self):
@@ -113,7 +113,7 @@ class Controller():
         self.end = None
         self.selector_mode = "windowing"
         self.annotation_mode = None
-        self.gui.set_status_bar()
+        self.gui.set_window_label()
         self.set_mpl_disconnect()
         self.set_mpl_connect(self.on_mouse_press,
                             self.on_windowing_mouse_move, self.on_windowing_mouse_release)
@@ -348,7 +348,7 @@ class Controller():
             # comparison = voi_lut_image == self.image
             # mismatch_count = np.count_nonzero(comparison == False)
             # print(mismatch_count)
-            self.gui.set_status_bar()
+            self.gui.set_window_label()
             self.img_show(voi_lut_image, cmap='gray', clear=True)
         except AttributeError:
             dd.ds.WindowCenter = 255

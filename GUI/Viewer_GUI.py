@@ -68,51 +68,58 @@ class MyWindow(QMainWindow):
         # slider and play button
         self.slider = QSlider(Qt.Horizontal)
         self.play_button = QPushButton("Play")
-        self.play_button.setStyleSheet("color: lightgray; font-size: 15px; height: 2px")
+        self.play_button.setStyleSheet("color: lightgray; height: 20px")
         self.video_status = None
         
         # WW, WL label
         self.windowing_layout = QHBoxLayout()
-        self.wl_layout = QHBoxLayout()
+
         self.wl_label = QLabel("WL:")
-        self.wl_label.setStyleSheet("color: lightgray; font-size: 15px;")
-        self.wl_value_label = QLabel("256")
-        self.wl_value_label.setStyleSheet("color: lightgray;")
-        self.wl_layout.addWidget(self.wl_label)
-        self.wl_layout.addWidget(self.wl_value_label)
+        self.wl_label.setFixedHeight(20)
+        self.wl_label.setStyleSheet("color: lightgray; background-color: #3e3e3e")
 
-        self.ww_layout = QHBoxLayout()
         self.ww_label = QLabel("WW:")
-        self.ww_label.setStyleSheet("color: lightgray; font-size: 15px;")
-        self.ww_value_label = QLabel("256")
-        self.ww_value_label.setStyleSheet("color: lightgray;")
-        self.ww_layout.addWidget(self.ww_label)
-        self.ww_layout.addWidget(self.ww_value_label)
+        self.ww_label.setFixedHeight(20)
+        self.ww_label.setStyleSheet("color: lightgray; background-color: #3e3e3e;")
 
-        self.windowing_layout.addLayout(self.wl_layout)
-        self.windowing_layout.addLayout(self.ww_layout)
+        self.windowing_layout.addWidget(self.wl_label)
+        self.windowing_layout.addWidget(self.ww_label)
+
+        # Tool status label
+        self.tool_status_label = QLabel("Tool Status: None")
+        self.tool_status_label.setFixedHeight(20)
+        self.tool_status_label.setStyleSheet("color: lightgray; background-color: #3e3e3e;")
+
+        # status widget
+        self.status_widget = QWidget()
+        self.status_layout = QVBoxLayout()
+
+        self.status_layout.addLayout(self.windowing_layout)
+        self.status_layout.addWidget(self.tool_status_label)
+
+        self.status_widget.setLayout(self.status_layout)
+        self.status_widget.setStyleSheet("background-color: #3e3e3e;")
 
         # Frame label
         self.frame_label = QLabel("")
         self.frame_label.setStyleSheet("color: lightgray;")
 
-        # Window layout
+        # GUI Layout
         grid_box = QGridLayout(self.main_widget)
-        grid_box.setColumnStretch(0, 4)   # column 0 width 2
+        grid_box.setColumnStretch(0, 4)   # column 0 width 4
         grid_box.setColumnStretch(1, 1)   # column 1 width 1
 
         # column 0
-        grid_box.addWidget(self.canvas, 0, 0, 4, 2)
-        grid_box.addWidget(self.slider, 4, 0)
+        grid_box.addWidget(self.canvas, 0, 0, 8, 2)
+        grid_box.addWidget(self.slider, 8, 0)
 
         # column 1
-        grid_box.addWidget(self.frame_label, 4, 1)
+        grid_box.addWidget(self.frame_label, 8, 1)
 
         # column 2
-        grid_box.addWidget(self.label_scroll_area, 0, 2, 2, 1)
-        grid_box.addWidget(self.play_button, 2, 2)
-        grid_box.addLayout(self.windowing_layout, 3, 2)
-        #grid_box.addLayout(self.status_layout, 4, 2)
+        grid_box.addWidget(self.label_scroll_area, 0, 2, 5, 1)
+        grid_box.addWidget(self.play_button, 5, 2)
+        grid_box.addWidget(self.status_widget, 6, 2)
 
         # 창 중앙 정렬
         screen_geometry = QApplication.desktop().availableGeometry()
@@ -233,14 +240,29 @@ class MyWindow(QMainWindow):
     
     def set_frame_label(self):
         frame = self.dd.frame_number
-        total_frame = self.dd.total_frame
+        total_frame = int(self.dd.total_frame) - 1
         self.frame_label.setText(f"{frame} / {total_frame}")
 
-    def set_window_label(self): # TODO: widnow label의 값 update하는 함수 작성하기
-        pass
+    def set_window_label(self, init = False): # TODO: widnow label의 값 update하는 함수 작성하기
+        if init:
+            self.wl_label.setText(f"WL: ")
+            self.ww_label.setText(f"WW: ")
+        else:
+            wl_value = self.dd.ds.WindowCenter
+            ww_value = self.dd.ds.WindowWidth
+            self.wl_label.setText(f"WL: {wl_value}")
+            self.ww_label.setText(f"WW: {ww_value}")
+
+        self.windowing_layout.update()
     
-    def set_tool_status_label(self):   # TODO: 현재 tool의 status update하는 함수 작성하기
-        pass
+    def set_tool_status_label(self, init = False):   # TODO: 현재 tool의 status update하는 함수 작성하기
+        if init:
+            self.tool_status_label.setText(f"Tool Status: None")
+        else:
+            sm = self.cl.selector_mode
+            am = self.cl.annotation_mode
+            smam = f"Tool Status: {sm} ({am})" if am else f"Tool Status: {sm}"
+            self.tool_status_label.setText(smam)
             
     def open_file(self):
         # 파일 열기 기능 구현
@@ -260,6 +282,9 @@ class MyWindow(QMainWindow):
             # viewer 설정 초기화
             self.slider.setValue(0)    # slider value 초기화
             self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
+            self.set_status_bar()    # 현재 파일 경로 status bar에 표시
+            self.set_window_label(init = True)
+            self.set_tool_status_label(init = True)
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.set_window_label()
@@ -289,8 +314,6 @@ class MyWindow(QMainWindow):
 
             else:    # viewer에 호환되지 않는 확장자 파일
                 print("Not accepted file format")
-
-            self.set_status_bar()    # 현재 파일 경로 status bar에 표시
         else:
             print("Open fail")
 
@@ -317,8 +340,6 @@ class MyWindow(QMainWindow):
         button_list = self.buttons[label]
         button_list[0].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 120px;")
         button_list[1].setStyleSheet("color: white; font-weight: bold; height: 30px; width: 50px;")
-        print(label, 'button clicked')
-        
         # TODO : 해당 label을 frame에서 지운 후, label 하나 그리면 그리기 모드 종료되고, 해당 label 선택된 상태로 만들기 
         # (일단 사각형 그리기로 했는데, 추후 수정이 필요합니다)
         # if self.dd.frame_label_check(label):
@@ -465,7 +486,7 @@ class MyWindow(QMainWindow):
         self.cl.init_windowing_mode()
 
     def draw_straight_line(self, label=None):
-        if label:
+        if label or self.cl.selector_mode == "drawing":
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("line", label)
         else:
@@ -473,7 +494,7 @@ class MyWindow(QMainWindow):
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
     
     def draw_circle(self, label=None):
-        if label:
+        if label or self.cl.selector_mode == "drawing":
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("circle", label)
         else:
@@ -481,7 +502,7 @@ class MyWindow(QMainWindow):
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
     def draw_rectangle(self, label=None):
-        if label:
+        if label or self.cl.selector_mode == "drawing":
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("rectangle", label)
         else:
@@ -490,7 +511,7 @@ class MyWindow(QMainWindow):
 
     def draw_freehand(self, label=None):
         # 자유형 그리기 기능 구현
-        if label:
+        if label or self.cl.selector_mode == "drawing":
             self.setCursor(Qt.CrossCursor)
             self.cl.init_draw_mode("freehand", label)
         else:
