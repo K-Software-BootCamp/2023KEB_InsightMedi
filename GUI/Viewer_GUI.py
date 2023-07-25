@@ -72,9 +72,7 @@ class MyWindow(QMainWindow):
         self.video_status = None
         
         # WW, WL label
-        """ self.windowing_box = QGroupBox("Windowing")
         self.windowing_layout = QHBoxLayout()
-
         self.wl_layout = QHBoxLayout()
         self.wl_label = QLabel("WL:")
         self.wl_label.setStyleSheet("color: lightgray; font-size: 15px;")
@@ -93,22 +91,28 @@ class MyWindow(QMainWindow):
 
         self.windowing_layout.addLayout(self.wl_layout)
         self.windowing_layout.addLayout(self.ww_layout)
-        self.windowing_box.setLayout(self.windowing_layout) """
+
+        # Frame label
+        self.frame_label = QLabel("")
+        self.frame_label.setStyleSheet("color: lightgray;")
 
         # Window layout
         grid_box = QGridLayout(self.main_widget)
         grid_box.setColumnStretch(0, 4)   # column 0 width 2
         grid_box.setColumnStretch(1, 1)   # column 1 width 1
 
-        #column 0
-        grid_box.addWidget(self.canvas, 0, 0, 4, 1)
+        # column 0
+        grid_box.addWidget(self.canvas, 0, 0, 4, 2)
         grid_box.addWidget(self.slider, 4, 0)
 
         # column 1
-        grid_box.addWidget(self.label_scroll_area, 0, 1, 2, 1)
-        grid_box.addWidget(self.play_button, 2, 1)
-        #grid_box.addLayout(self.windowing_layout, 3, 1)
-        #grid_box.addLayout(self.status_layout, 4, 1)
+        grid_box.addWidget(self.frame_label, 4, 1)
+
+        # column 2
+        grid_box.addWidget(self.label_scroll_area, 0, 2, 2, 1)
+        grid_box.addWidget(self.play_button, 2, 2)
+        grid_box.addLayout(self.windowing_layout, 3, 2)
+        #grid_box.addLayout(self.status_layout, 4, 2)
 
         # 창 중앙 정렬
         screen_geometry = QApplication.desktop().availableGeometry()
@@ -225,28 +229,22 @@ class MyWindow(QMainWindow):
     
     def set_status_bar(self):
         try:
-            if self.dd.file_path:
-                self.statusBar().showMessage(self.dd.file_path)
+            file_path = self.dd.file_path
+            if file_path:
+                self.statusBar().showMessage(file_path)
         except: 
             self.statusBar().showMessage("")
+    
+    def set_frame_label(self):
+        frame = self.dd.frame_number
+        total_frame = self.dd.total_frame
+        self.frame_label.setText(f"{frame} / {total_frame}")
 
-    def set_screen_status(self):
-        # print(self.dd.ds)
-        sm = self.cl.selector_mode
-        am = self.cl.annotation_mode
-        smam = f"Tool Status : {sm}:{am}" if am else f"Tool Status : {sm}"
-        try:
-            if self.dd.file_mode == 'dcm':
-                wl = self.dd.ds.WindowCenter
-                ww = self.dd.ds.WindowWidth
-                # print(wl, ww)
-                self.statusBar().showMessage(f"WL: {wl} WW:{ww} {smam}")
-            elif self.dd.file_mode == 'mp4':
-                vs = self.video_status
-                self.statusBar().showMessage(f"Video Stauts: {vs} "
-                                            f"Frame: {self.dd.frame_number} / {self.dd.total_frame} {smam}")
-        except (AttributeError, TypeError):
-            self.statusBar().showMessage(smam)
+    def set_window_label(self): # TODO: widnow label의 값 update하는 함수 작성하기
+        pass
+    
+    def set_tool_status_label(self):   # TODO: 현재 tool의 status update하는 함수 작성하기
+        pass
             
     def open_file(self):
         # 파일 열기 기능 구현
@@ -262,44 +260,45 @@ class MyWindow(QMainWindow):
             # 파일 열기
             dd = self.dd
             dd.open_file(fname)
+
             # viewer 설정 초기화
-            
-            #self.delete_total_label()   # frame layout에 추가된 button widget 전체 삭제
             self.slider.setValue(0)    # slider value 초기화
-            # TODO : load label 함수 수정 후 아래 코드 주석 풀기
             self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
+                self.set_window_label()
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
                 if self.dd.frame_label_check(self.dd.frame_number):
                     self.cl.label_clicked(self.dd.frame_number)
+
+                # slider 설정
                 self.slider.setMaximum(0)
                 
             elif dd.file_mode == "mp4":  # mp4 파일인 경우
                 self.timer = QTimer()
+                self.video_status = "Ready"
+                self.set_frame_label()
+
                 self.cl.img_show(dd.image, cmap=plt.cm.gray, init=True)
                 if self.dd.frame_label_check(self.dd.frame_number):
                     self.cl.label_clicked(self.dd.frame_number)
-
-                print(dd.total_frame)
+                
+                # slider 설정
                 self.slider.setMaximum(dd.total_frame - 1)
-                self.video_status = "Ready"
-                # 눈금 설정
                 self.slider.setTickPosition(
                     QSlider.TicksBelow)  # 눈금 위치 설정 (아래쪽)
                 self.slider.setTickInterval(10)  # 눈금 간격 설정
-
                 self.slider.valueChanged.connect(self.sliderValueChanged)
                 self.play_button.clicked.connect(self.playButtonClicked)
 
             else:    # viewer에 호환되지 않는 확장자 파일
                 print("Not accepted file format")
 
-            self.set_status_bar()    # 현재 windwoing 상태 초기화
+            self.set_status_bar()    # 현재 파일 경로 status bar에 표시
         else:
             print("Open fail")
 
-    def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 반영하기
+    def load_label_button(self, ld):    # frame_label_dict에 있는 label 정보 버튼에 반영하기
         all_labels = set()
         for frame in ld:
             labels = self.dd.frame_label_check(frame)
@@ -329,9 +328,10 @@ class MyWindow(QMainWindow):
         # if self.dd.frame_label_check(label):
         # 사각형 1개 그리고 나면 selector 모드로 바뀌어야 함
 
-        if self.dd.frame_label_check(self.dd.frame_number):
-            self.dd.delete_label(label)
-            self.cl.erase_annotation(label)
+        for frame in self.dd.frame_label_dict:
+            if self.dd.frame_label_check(frame):
+                self.dd.delete_label(label)
+                self.cl.erase_annotation(label)
         
         print("삭제 됐나 확인:",self.dd.frame_label_dict)
         if self.cl.annotation_mode == "line":
@@ -341,52 +341,47 @@ class MyWindow(QMainWindow):
         elif self.cl.annotation_mode == "freehand":
             self.draw_freehand(label)
         else:
-            self.draw_rectangle(label) 
+            self.draw_rectangle(label)
 
     def go_button_clicked(self, label):
         print(label, "go button clicked")
 
         found_label = False
 
-        for frame, frame_dict in self.dd.frame_label_dict.items():
-            for drawing_type, label_dict in frame_dict.items():
-                if label in label_dict.keys():
-                    first_frame = frame
-                    found_label = True
-                    break
-            if found_label == True:
+        for frame in self.dd.frame_label_dict:
+            labels = self.dd.frame_label_check(frame)
+            if labels and label in labels:
+                first_frame = frame
+                found_label = True
                 break
         
         if found_label:
-            self.label_clicked(first_frame, label)
+            self.frame_label_show(first_frame, label)
             print("go button 누른 후 현재 frame number", self.dd.frame_number)
             print("frame_label_check 함수 확인:", self.dd.frame_label_check(self.dd.frame_number))
 
-    def disable_total_label(self):
-        #frame 이동 버튼들 전부 제거하기
-        for _label_name in self.buttons:
-            button_list = self.buttons[_label_name]
-            button_list[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
-            button_list[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
-            self.dd.delete_label(_label_name)
-        self.label_layout.update()
+    def frame_label_show(self, frame, label):
+        # go 버튼 클릭시 frame값을 전달받고 이동 후 선택된 label은 두껍게 보여짐
+        self.setCursor(Qt.ArrowCursor)
+        if self.dd.file_mode == "mp4":
+            self.dd.frame_number = frame
+            self.slider.setValue(frame)
             
-        #data에서 해당 라벨이름 정보 제거하기
-    
-    def delete_frame_button(self, frame):
-        # FIXME : 특정 frame에 있는 label들 비활성화 화기
-        if frame in self.buttons:
-            #button_to_remove = self.buttons[frame]
-            #self.label_layout.removeWidget(button_to_remove)
-            #button_to_remove.deleteLater()
-            del self.buttons[frame]
-            print(f"{frame} 프레임에 대한 버튼 제거됨")
-        else:
-            print(f"{frame} 프레임에 대한 버튼을 찾을 수 없음")
-        self.label_layout.update()
+        self.cl.label_clicked(frame, label)
+
+    def disable_total_label(self):
+        # 해당 프레임에 있는 전체 label 버튼 비활성화
+        frame_labels = self.dd.frame_label_check(self.dd.frame_number)
+        if frame_labels:
+            for _label_name in frame_labels:
+                button_list = self.buttons[_label_name]
+                button_list[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
+                button_list[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
+                self.dd.delete_label(_label_name)
+            self.label_layout.update()
 
     def disable_label_button(self, _label_name):
-        #특정 label 버튼 볼드체 풀기
+        #특정 label 버튼 볼드체 풀기 (비활성화)
         if _label_name in self.buttons:
             button_list = self.buttons[_label_name]
             button_list[0].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 120px;")
@@ -400,40 +395,28 @@ class MyWindow(QMainWindow):
         #data에서 해당 라벨이름 정보 제거하기
         self.dd.delete_label(_label_name)
     
-    def label_clicked(self, frame, label):
-        #label 버튼 클릭시 frame값을 전달받고 이동 후 label들을 보여줍니다.
-        self.setCursor(Qt.ArrowCursor)
-        if self.dd.file_mode == "mp4":
-            self.dd.frame_number = frame
-            self.slider.setValue(frame)
-            
-        self.cl.label_clicked(frame, label)
-
     def save(self):
         # 저장 기능 구현
         self.dd.save_label()
-
         print("Save...")
 
     def save_as(self):
         # 다른 이름으로 저장 기능 구현
         print("Save As...")
 
-    def sliderValueChanged(self, value):   # 슬라이더로 frame 위치 조정
-        if not self.timer.isActive():
-            #print("slider value changed 함수 호출")
-            #print("Slider Value : ", value)
+    def sliderValueChanged(self, value):   
+        # 슬라이더 값에 따라 frame 보여짐
+        if not self.timer.isActive():    # 영상 재생 중인 경우
             self.dd.frame_number = value
-            #print("현재 frame: ", self.dd.frame_number)
             self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
             self.updateFrame()
-        elif self.timer.isActive() and value != self.dd.frame_number:
-            #print("Slider 클릭함!!!!!!")
-            #print('바뀐 value:', value)
+        elif self.timer.isActive() and value != self.dd.frame_number:    
+            # 영상이 정지 중이거나 사용자가 slider value를 바꾼 경우
             self.dd.frame_number = value
             self.dd.video_player.set(cv2.CAP_PROP_POS_FRAMES, self.dd.frame_number)
 
-    def playButtonClicked(self):    # 영상 재생 버튼의 함수
+    def playButtonClicked(self):    
+        # 영상 재생 버튼의 함수
         self.setCursor(Qt.ArrowCursor)
         if not self.timer:    # timer 없으면 새로 생성하고 updateFrame을 callback으로 등록
             self.timer = self.canvas.new_timer(interval=16)  # 60FPS
@@ -445,23 +428,22 @@ class MyWindow(QMainWindow):
             self.timer.start()
             self.timer.timeout.connect(self.updateFrame)
             self.timer.start(16)
-        else:    # timer가 활성화되면 정지
+        else:    # 영상 정지
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
             self.video_status = 'Stop'
-            #self.set_screen_status()   # 현재 frame 상태 update   # TODO frame 수 화면에 업데이트 하는 함수 작성하기
+            self.set_frame_label()   # 현재 frame 상태 화면에 update
             self.timer.stop()
             self.dd.frame_number = int(
-                self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
-            #self.slider.setValue(self.dd.frame_number)
-            
+                self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1            
 
-    def updateFrame(self):    # frame update
+    def updateFrame(self):    
+        # frame update
         ret, frame = self.dd.video_player.read()
         if ret:
             self.dd.frame_number = int(
                     self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
-            #self.set_screen_status()  # 현재 frame 상태 update   # TODO frame 수 화면에 업데이트 하는 함수 작성하기
+            self.set_frame_label()  # 현재 frame 상태 화면에 update
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.cl.img_show(rgb_frame, clear=True)
 
@@ -469,9 +451,9 @@ class MyWindow(QMainWindow):
             if self.dd.frame_number in self.dd.frame_label_dict:
                 self.cl.label_clicked(self.dd.frame_number)
             
-            if self.timer.isActive():
-                #print("재생 중")
+            if self.timer.isActive():   # 영상 재생 중
                 self.slider.setValue(self.dd.frame_number)
+
         print("update Frame 호출, 현재 frame: ", self.dd.frame_number)
         
     def selector(self):
@@ -484,10 +466,6 @@ class MyWindow(QMainWindow):
             # 선택한 색상이 유효한 경우, 해당 색상 정보를 저장
             self.selected_color = color
             print(self.selected_color)
-
-    def delete(self):
-        self.setCursor(Qt.PointingHandCursor)
-        self.cl.init_selector("delete")
 
     def apply_windowing(self):
         self.setCursor(Qt.OpenHandCursor)
@@ -526,6 +504,10 @@ class MyWindow(QMainWindow):
             self.cl.annotation_mode = "freehand"
             draw_reply = QMessageBox.information(self, 'Message', 'Click label button before drawing')
 
+    def delete(self):
+        self.setCursor(Qt.PointingHandCursor)
+        self.cl.init_selector("delete")
+    
     def delete_all(self):
         self.setCursor(Qt.ArrowCursor)
         # print("erase")
@@ -534,7 +516,7 @@ class MyWindow(QMainWindow):
 
         if reply == QMessageBox.Yes:
             self.cl.erase_all_annotation()    # canvas 위에 그려진 label 삭제
-            self.disable_total_label()
+            self.disable_total_label()    # label 버튼 비활성화
 
     def zoom_in(self):
         self.cl.init_zoom_mode("in")

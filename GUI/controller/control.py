@@ -348,7 +348,7 @@ class Controller():
         """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 비활성화하고 데이터 지우는 순차적 구조입니다."""
         self.gui.disable_label_button(label_name)
 
-     def modify_label_data(self):
+    def modify_label_data(self):
         cc = self.changed_coor
         
         ret_points = None
