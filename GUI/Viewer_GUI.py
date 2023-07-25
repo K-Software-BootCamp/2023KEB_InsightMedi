@@ -5,17 +5,15 @@ from PyQt5.QtCore import Qt, QTimer
 
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
-import matplotlib.pyplot as plt
-
+from data.dcm_data import DcmData
 from controller.control import Controller
 from functools import partial
-from data.dcm_data import DcmData
-from module.Windowing_Inputdialog import InputDialog
 
 
 class MyWindow(QMainWindow):
@@ -26,20 +24,19 @@ class MyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("InsightMedi Viewer")
-        self.setGeometry(100,100,1280,720)
-        # self.setFixedSize(700, 700)
+        self.setGeometry(100,100,1280,720)    # 초기 window 위치, size
 
         self.main_widget = QWidget()
         self.main_widget.setStyleSheet("background-color: #303030;")
-        self.cid = None
-
-        # DcmData Added
-        self.dd = DcmData()
         
         self.setCentralWidget(self.main_widget)
 
         self.canvas = FigureCanvas(Figure(figsize=(4, 3)))
         
+        self.dd = DcmData()    # dcm_data.py의 DcmData()
+        self.cl = Controller(self.dd, self.canvas, self)    # control.py의 Controller()
+
+        # label list
         self.label_list = QWidget()
         self.label_layout = QVBoxLayout()
         self.label_list.setLayout(self.label_layout)
@@ -62,21 +59,43 @@ class MyWindow(QMainWindow):
             
             self.label_go_buttons = [self.label_button, self.go_button]
             self.buttons[label_name] = self.label_go_buttons
-
-        # print(self.buttons)
         
-        # slider and play button
-        self.slider = QSlider(Qt.Horizontal)
-        self.play_button = QPushButton("Play")
-        self.play_button.setStyleSheet("color: lightgray;")
-        self.video_status = None
-
         # Label list scroll area
         self.label_scroll_area = QScrollArea()
         self.label_scroll_area.setWidget(self.label_list)
         self.label_scroll_area.setWidgetResizable(True)
 
-        # Layout
+        # slider and play button
+        self.slider = QSlider(Qt.Horizontal)
+        self.play_button = QPushButton("Play")
+        self.play_button.setStyleSheet("color: lightgray; font-size: 15px; height: 2px")
+        self.video_status = None
+        
+        # WW, WL label
+        """ self.windowing_box = QGroupBox("Windowing")
+        self.windowing_layout = QHBoxLayout()
+
+        self.wl_layout = QHBoxLayout()
+        self.wl_label = QLabel("WL:")
+        self.wl_label.setStyleSheet("color: lightgray; font-size: 15px;")
+        self.wl_value_label = QLabel("256")
+        self.wl_value_label.setStyleSheet("color: lightgray;")
+        self.wl_layout.addWidget(self.wl_label)
+        self.wl_layout.addWidget(self.wl_value_label)
+
+        self.ww_layout = QHBoxLayout()
+        self.ww_label = QLabel("WW:")
+        self.ww_label.setStyleSheet("color: lightgray; font-size: 15px;")
+        self.ww_value_label = QLabel("256")
+        self.ww_value_label.setStyleSheet("color: lightgray;")
+        self.ww_layout.addWidget(self.ww_label)
+        self.ww_layout.addWidget(self.ww_value_label)
+
+        self.windowing_layout.addLayout(self.wl_layout)
+        self.windowing_layout.addLayout(self.ww_layout)
+        self.windowing_box.setLayout(self.windowing_layout) """
+
+        # Window layout
         grid_box = QGridLayout(self.main_widget)
         grid_box.setColumnStretch(0, 4)   # column 0 width 2
         grid_box.setColumnStretch(1, 1)   # column 1 width 1
@@ -88,17 +107,23 @@ class MyWindow(QMainWindow):
         # column 1
         grid_box.addWidget(self.label_scroll_area, 0, 1, 2, 1)
         grid_box.addWidget(self.play_button, 2, 1)
+        #grid_box.addLayout(self.windowing_layout, 3, 1)
+        #grid_box.addLayout(self.status_layout, 4, 1)
+
+        # 창 중앙 정렬
+        screen_geometry = QApplication.desktop().availableGeometry()
+        center_x = (screen_geometry.width() - self.width()) // 2
+        center_y = (screen_geometry.height() - self.height()) // 2
+        self.move(center_x, center_y)
+
+        '''
+        Toolbar
+        '''
 
         # Create a toolbar
         toolbar = self.addToolBar("Toolbar")
-        # toolbar.setStyleSheet("background-color: #303030;")
+        #toolbar.setStyleSheet("background-color: #3e3e3e;")
         self.statusBar().showMessage("")
-
-        #Create Controller
-        self.cl = Controller(self.dd, self.canvas, self)
-        '''
-        파일 도구
-        '''
 
         # Open file action
         open_action = QAction(
@@ -186,12 +211,6 @@ class MyWindow(QMainWindow):
         zoom_out_action.triggered.connect(self.zoom_out)
         toolbar.addAction(zoom_out_action)
 
-        # 창 중앙 정렬
-        screen_geometry = QApplication.desktop().availableGeometry()
-        center_x = (screen_geometry.width() - self.width()) // 2
-        center_y = (screen_geometry.height() - self.height()) // 2
-        self.move(center_x, center_y)
-
     def closeEvent(self, event):
         # mainWindow종료시 할당된 메모리 해제하기
         self.release_resources()
@@ -203,8 +222,15 @@ class MyWindow(QMainWindow):
         if self.dd.video_player:
             self.video_status = None
             self.dd.video_player.release()
-
+    
     def set_status_bar(self):
+        try:
+            if self.dd.file_dir:
+                self.statusBar().showMessage(self.dd.file_dir)
+        except:
+            self.statusBar().showMessage("")
+
+    def set_screen_status(self):
         # print(self.dd.ds)
         sm = self.cl.selector_mode
         am = self.cl.annotation_mode
@@ -424,7 +450,7 @@ class MyWindow(QMainWindow):
             self.play_button.setText("Play")
             self.timer.timeout.disconnect(self.updateFrame)
             self.video_status = 'Stop'
-            self.set_status_bar()
+            #self.set_screen_status()   # 현재 frame 상태 update   # TODO frame 수 화면에 업데이트 하는 함수 작성하기
             self.timer.stop()
             self.dd.frame_number = int(
                 self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
@@ -436,7 +462,7 @@ class MyWindow(QMainWindow):
         if ret:
             self.dd.frame_number = int(
                     self.dd.video_player.get(cv2.CAP_PROP_POS_FRAMES)) - 1
-            self.set_status_bar()  # frame 상태창 변경
+            #self.set_screen_status()  # 현재 frame 상태 update   # TODO frame 수 화면에 업데이트 하는 함수 작성하기
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.cl.img_show(rgb_frame, clear=True)
 
@@ -448,18 +474,6 @@ class MyWindow(QMainWindow):
                 #print("재생 중")
                 self.slider.setValue(self.dd.frame_number)
         print("update Frame 호출, 현재 frame: ", self.dd.frame_number)
-        
-    # windowing값을 input dialog로 받아 보여주는 코드
-    # def windowing_input_dialog(self):
-        # Windowing 값 입력하는 input dialog
-        # windowing_dialog = InputDialog()
-        # if windowing_dialog.exec_() == QDialog.Accepted:
-        #     wl_value, ww_value, ok_flag = windowing_dialog.getText()
-
-        #     if ok_flag:
-        #         wl = wl_value
-        #         ww = ww_value
-        #         self.apply_windowing(ww, wl)
         
     def selector(self):
         self.setCursor(Qt.ArrowCursor)
