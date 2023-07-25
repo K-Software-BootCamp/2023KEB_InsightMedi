@@ -36,7 +36,7 @@ class Controller():
         self.points = []
         self.is_drawing = False
         self.is_panning = False
-        self.pan_Start = None
+        self.pan_start = None
 
         self.press=None
         self.artist = None
@@ -56,11 +56,12 @@ class Controller():
                 self.canvas.mpl_disconnect(cid)
         self.cid = []
 
-    #init functions
+    # init functions
     def init_draw_mode(self, mode, label):
         # 직선 그리기 기능 구현
         self.label_name = label
-        self.press = None
+        self.start = None
+        self.end = None
         self.annotation = None
         self.is_drawing = False
     
@@ -72,10 +73,10 @@ class Controller():
         if self.annotation_mode == "freehand":
             self.points = []
             self.set_mpl_connect(self.on_mouse_press,
-                                 self.on_freehand_mouse_move, self.on_mouse_release)
+                                 self.on_freehand_mouse_move, self.on_draw_mouse_release)
         else:
             self.set_mpl_connect(self.on_mouse_press,
-                                 self.on_mouse_move, self.on_mouse_release)
+                                 self.on_draw_mouse_move, self.on_draw_mouse_release)
 
     def init_selector(self, mode):
         self.set_mpl_disconnect()
@@ -93,18 +94,33 @@ class Controller():
             print("Unexpected mode name")
             return
         self.gui.set_status_bar()
-        
+
         cid0 = self.canvas.mpl_connect('pick_event', self.selector_on_pick)
         self.cid.append(cid0)
         self.set_mpl_connect(self.selector_on_press, self.selector_on_move, self.selector_on_release)
-        
+
     def init_zoom_mode(self, mode):
         self.set_mpl_disconnect()
+        self.pan_start = None
+        self.is_panning = False
         self.selector_mode = 'zoom'
         self.annotation_mode = mode
-        self.set_mpl_connect(self.on_pan_mouse_press, self.on_pan_mouse_move,  self.on_pan_mouse_release)
+        self.gui.set_status_bar()
+        self.set_mpl_connect(self.on_pan_mouse_press, self.on_pan_mouse_move, self.on_pan_mouse_release)
+
+    def init_windowing_mode(self):
+        self.is_drawing = False
+        self.start = None
+        self.end = None
     
-    #color, thickness
+        self.selector_mode = "windowing"
+        self.annotation_mode = None
+        self.gui.set_status_bar()
+        self.set_mpl_disconnect()
+        self.set_mpl_connect(self.on_mouse_press,
+                            self.on_windowing_mouse_move, self.on_windowing_mouse_release)
+    
+    # color, thickness
     def get_color(self, annotation):
         if isinstance(annotation, Line2D):
             #straight line
@@ -123,7 +139,7 @@ class Controller():
 
     def get_edge_thick(self, annotation):
             return annotation.get_linewidth()
-  
+
     def set_edge_thick(self, annotation, line_width=1):
             annotation.set_linewidth(line_width)
 
@@ -146,7 +162,7 @@ class Controller():
 
         return hex_color
 
-    #selector events
+    # selector events
     def selector_on_pick(self, event):
         if event.artist is None:
             return
@@ -160,8 +176,7 @@ class Controller():
                 self.artist.remove()
                 self.canvas.draw()
                 self.delete_label(event.artist.get_label())
-    
-        
+
     def selector_on_press(self, event):
         """ 
         선택된 라벨이 self.artist에 저장되어있어야 하며
@@ -227,48 +242,39 @@ class Controller():
     # draw annotation events
     def on_mouse_press(self, event):
         if event.button == 1:
-            self.press = True
-            if self.artist:
-                self.set_edge_thick(self.artist)
+            self.is_drawing = True
+            self.select_off_all()
             self.start = (event.xdata, event.ydata)
             self.color = self.random_bright_color()
 
-    def on_mouse_move(self, event):
+    def on_draw_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
             self.draw_annotation(self.color)
-
-    def on_mouse_release(self, event):
-        if event.button == 1:
-            self.is_drawing = False
-            self.end = (event.xdata, event.ydata)
-            self.draw_annotation(self.color)
-            self.artist = self.annotation
-            self.set_edge_thick(self.artist, 3)
-            self.canvas.draw()
-            self.annotation = None
-            self.gui.selector()
 
     def on_freehand_mouse_move(self, event):
         if self.is_drawing:
             self.end = (event.xdata, event.ydata)
             if self.end not in self.points:
                 self.points.append(self.end)
-                self.draw_annotation()
+                self.draw_annotation(self.color)
+
+    def on_draw_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.end = (event.xdata, event.ydata)
+            self.draw_annotation(self.color)
+            self.annotation = None
+            self.gui.selector()
 
     def draw_annotation(self, color="red"):
         if self.start and self.end and self.selector_mode == "drawing":
             if self.annotation:
                 #연속적인 라벨의 그림을 보여주기 위해 이전 annotation을 제거해줍니다.
-                # if self.annotation_mode == 'freehand':
-                #     # print(dir(self.annotation))
-                #     self.annotation[0].remove()
-                # else:
-                    self.annotation.remove()    
+                    self.annotation.remove() 
 
-            # self.dd.set_new_label_name()
             label_class = self.label_name
-            
+
             if self.annotation_mode == "line":
                 x = [self.start[0], self.end[0]]
                 y = [self.start[1], self.end[1]]
@@ -303,22 +309,78 @@ class Controller():
                     self.points = []
                     self.dd.add_label("freehand", label_class, self.points, color)
 
-            elif self.annotation_mode == "windowing":
-                dd = self.dd
-                dx = self.end[0] - self.start[0]
-                dy = self.end[1] - self.start[1]
-
-                # if dd.file_mode == 'mp4':
-                #     self.mp4_windowing_change(dd, dx, dy)
-                if dd.file_mode == 'dcm':
-                    self.dcm_windowing_change(dd, dx, dy)
-
+            self.set_edge_thick(self.annotation, line_width=3)
             self.canvas.draw()
 
+    # changing windowing events
+    def on_windowing_mouse_move(self, event):
+        if self.is_drawing:
+            self.end = (event.xdata, event.ydata)
+            self.dcm_windowing_change()
+
+    def on_windowing_mouse_release(self, event):
+        if event.button == 1:
+            self.is_drawing = False
+            self.end = (event.xdata, event.ydata)
+            self.dcm_windowing_change()
+
+    def dcm_windowing_change(self):
+        """
+        windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.  
+        windwow width는 y값에 대해 변경되므로 마우스 상하로 변경됩니다.
+        windowing 값은 정수값입니다.
+        """
+        dd = self.dd
+        if dd.file_mode != 'dcm':
+            return
+        
+        dx = self.end[0] - self.start[0]
+        dy = self.end[1] - self.start[1]
+
+        def digit_length(num):
+            return int(math.log10(num)) + 1 if num > 0 else 0
+        xd = digit_length(dd.image.shape[0]) - 1
+        yd = digit_length(dd.image.shape[1]) - 1
+        try:
+            dd.ds.WindowCenter = int(dd.ds.WindowCenter + (10**xd) * dx / dd.image.shape[0])
+            dd.ds.WindowWidth = int(dd.ds.WindowWidth - (10**yd) * dy / dd.image.shape[1])
+            # print(wl, ww)
+            modality_lut_image = apply_modality_lut(dd.image, dd.ds)
+            voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
+            # comparison = voi_lut_image == self.image
+            # mismatch_count = np.count_nonzero(comparison == False)
+            # print(mismatch_count)
+            self.gui.set_status_bar()
+            self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
+        except AttributeError:
+            dd.ds.WindowCenter = 255
+            dd.ds.WindowWidth = 255
+    
+    # delete or remove functions
     def delete_label(self, label_name):
         """ contorls > Viewer_GUI > dcm_data순으로 먼저 버튼을 비활성화하고 데이터 지우는 순차적 구조입니다."""
         self.gui.disable_label_button(label_name)
 
+    def erase_annotation(self, _label_name):
+        """현재 self.ax에 _label_name의 patch들과 선들을 제거합니다."""
+        for patch in self.ax.patches:
+            # print(dir(patch))
+            if patch.get_label() == _label_name:
+                patch.remove()
+        for patch in self.ax.lines:
+            if patch.get_label() == _label_name:
+                patch.remove()
+        self.canvas.draw()
+
+    def erase_all_annotation(self):
+        """현재 self.ax에 있는 모든 patch들과 선들을 제거합니다."""
+        for patch in self.ax.patches:
+            patch.remove()
+        for patch in self.ax.lines:
+            patch.remove()
+        self.canvas.draw()
+
+    #modify functions
     def modify_label_data(self, ar):
         """
         변경된 객체의 좌표값들을 읽어와 self.dd에 저장합니다.
@@ -342,6 +404,7 @@ class Controller():
             color = self.get_color(ar)
             self.dd.modify_label_data(ar.get_label(), ret_points, color)
     
+    #select functions
     def select_only_current_edge(self, annotation):
         """
         현재 self.ax에서 주어진 annotation만 두께를 강조합니다.
@@ -349,16 +412,26 @@ class Controller():
         Args:
             annotataion(matplotlib.lines.Line2D or matplotlib.patches.Rectangle): 선 또는 도형 객체입니다.
         """
+        self.select_off_all()
+        self.set_edge_thick(annotation, line_width=3)
+        self.canvas.draw()
+    
+    def select_off_all(self):
+        """
+        현재 self.ax에서 모든 annotation들의 강조를 풉니다.
+        """
         for patch in self.ax.patches:
             self.set_edge_thick(patch)
         for patch in self.ax.lines:
             self.set_edge_thick(patch)
-        self.set_edge_thick(annotation, line_width=3)
-        self.canvas.draw()
-    
+
     def label_clicked(self, frame, _label_name=None):
-        """ go버튼 클릭 시 모든 annotation을 지우고 해당 frame으로 이동한 뒤 캔버스에 plot을 그려줍니다.
-        _label_name이 주어진다면 해당 라벨의 두께를 두껍게 합니다."""
+        """
+        go버튼 클릭 시 모든 annotation을 지우고 해당 frame으로 이동한 뒤 캔버스에 plot을 그려줍니다.
+        
+        Args:
+            _label_name(string): 해당 라벨의 두께를 두껍게 합니다.
+        """
         self.erase_all_annotation()
         frame_directory = self.dd.frame_label_dict[frame]
 
@@ -410,59 +483,20 @@ class Controller():
         #self.ax.tick_params(axis = 'y', colors = 'gray')
         self.ax.axis("off")
         self.canvas.draw()
-    
-    def erase_annotation(self, _label_name):
-        """현재 self.ax에 _label_name의 patch들과 선들을 제거합니다."""
-        for patch in self.ax.patches:
-            # print(dir(patch))
-            if patch.get_label() == _label_name:
-                patch.remove()
-        for patch in self.ax.lines:
-            if patch.get_label() == _label_name:
-                patch.remove()
-        self.canvas.draw()
 
-    def erase_all_annotation(self):
-        """현재 self.ax에 있는 모든 patch들과 선들을 제거합니다."""
-        for patch in self.ax.patches:
-            patch.remove()
-        for patch in self.ax.lines:
-            patch.remove()
-        self.canvas.draw()
-
-
-    def dcm_windowing_change(self, dd, dx, dy):
+    #zoom events
+    def zoom(self, percent):
         """
-        windwow center는 x값에 대해 변경되므로 마우스 좌우로 변경됩니다.  
-        windwow width는 y값에 대해 변경되므로 마우스 상하로 변경됩니다.
-        windowing 값은 정수값입니다.
-        """
-        def digit_length(num):
-            return int(math.log10(num)) + 1 if num > 0 else 0
-        xd = digit_length(dd.image.shape[0]) - 1
-        yd = digit_length(dd.image.shape[1]) - 1
-        try:
-            dd.ds.WindowCenter = int(dd.ds.WindowCenter + (10**xd) * dx / dd.image.shape[0])
-            dd.ds.WindowWidth = int(dd.ds.WindowWidth - (10**yd) * dy / dd.image.shape[1])
-            # print(wl, ww)
-            modality_lut_image = apply_modality_lut(dd.image, dd.ds)
-            voi_lut_image = apply_voi_lut(modality_lut_image, dd.ds)
-            # comparison = voi_lut_image == self.image
-            # mismatch_count = np.count_nonzero(comparison == False)
-            # print(mismatch_count)
-            self.gui.set_status_bar()
-            self.img_show(voi_lut_image, cmap=plt.cm.gray, clear=True)
-        except AttributeError:
-            dd.ds.WindowCenter = 256
-            dd.ds.WindowWidth = 256
-            #del self.dd.frame_label_dict[self.dd.frame_number]
+        zoom을 하는 함수입니다.
 
-    def zoom_in(self):
+        Args:
+            percent (float): 경계선을 줄이거나 늘릴 비율을 입력합니다.
+        """
         current_xlim = self.ax.get_xlim()
         current_ylim = self.ax.get_ylim()
 
-        new_xlim = (current_xlim[0] * 0.9, current_xlim[1] * 0.9)
-        new_ylim = (current_ylim[0] * 0.9, current_ylim[1] * 0.9)
+        new_xlim = (current_xlim[0] * percent, current_xlim[1] * percent)
+        new_ylim = (current_ylim[0] * percent, current_ylim[1] * percent)
 
         self.ax.set_xlim(new_xlim)
         self.ax.set_ylim(new_ylim)
@@ -470,10 +504,9 @@ class Controller():
         self.canvas.draw()
 
     def on_pan_mouse_press(self, event):
-        if event.button == 1 and not self.is_panning:
+        if event.button == 1:
             self.is_panning = True
             self.pan_start = (event.x, event.y)
-            print("on_pan_mouse_press")
 
     def on_pan_mouse_move(self, event):
         if self.is_panning:
@@ -484,28 +517,16 @@ class Controller():
             current_ylim = self.ax.get_ylim()
 
             new_xlim = (current_xlim[0] - x_diff, current_xlim[1] - x_diff)
-            new_ylim = (current_ylim[0] - y_diff, current_ylim[1] - y_diff)
+            new_ylim = (current_ylim[0] + y_diff, current_ylim[1] + y_diff)
 
             self.ax.set_xlim(new_xlim)
             self.ax.set_ylim(new_ylim)
 
             self.pan_start = (event.x, event.y)
             self.canvas.draw()
-            print("on_pan_mouse_move")
 
     def on_pan_mouse_release(self, event):
-        if event.button == 1 and self.is_panning:
+        if event.button == 1:
             self.is_panning = False
-            print("on_pan_mouse_release")
 
-    def zoom_out(self):
-        current_xlim = self.ax.get_xlim()
-        current_ylim = self.ax.get_ylim()
-
-        new_xlim = (current_xlim[0] * 1.1, current_xlim[1] * 1.1)
-        new_ylim = (current_ylim[0] * 1.1, current_ylim[1] * 1.1)
-
-        self.ax.set_xlim(new_xlim)
-        self.ax.set_ylim(new_ylim)
-
-        self.canvas.draw()
+    
