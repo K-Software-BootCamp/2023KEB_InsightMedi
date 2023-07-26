@@ -400,6 +400,9 @@ class MyWindow(QMainWindow):
                 button_list[1].setStyleSheet("color: gray; font-weight: normal; height: 30px; width: 50px;")
                 self.dd.delete_label(_label_name)
             self.label_layout.update()
+        
+        # data에서 해당 라벨 이름 정보 제거하기
+        self.dd.delete_label(_label_name)
 
     def disable_label_button(self, _label_name):
         #특정 label 버튼 볼드체 풀기 (비활성화)
