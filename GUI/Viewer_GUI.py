@@ -266,21 +266,24 @@ class MyWindow(QMainWindow):
             
     def open_file(self):
         # 파일 열기 기능 구현
-        self.canvas.figure.clear()
-        self.release_resources()
-        
-        self.setCursor(Qt.ArrowCursor)
         options = QFileDialog.Options()
         fname = QFileDialog.getOpenFileName(
             self, "Open File", "", "DCM Files (*.dcm *.DCM);;Video Files (*.mp4);;All Files (*)", options=options)
         
-        if fname[0]:
+        print(" 파일 다이어로그 열기ㅣ!!!", fname)
+        
+        if fname[0]:   # 새로운 파일 열기 한 경우
+            # 기존 파일 정보 삭제
+            self.setCursor(Qt.ArrowCursor)
+            self.canvas.figure.clear()
+            self.release_resources()
+            self.slider.setValue(0)    # slider value 초기화
+
             # 파일 열기
             dd = self.dd
             dd.open_file(fname)
 
             # viewer 설정 초기화
-            self.slider.setValue(0)    # slider value 초기화
             self.load_label_button(dd.frame_label_dict)   # open한 파일에 이미 저장되어 있는 label button 활성화하는 함수
             self.set_status_bar()    # 현재 파일 경로 status bar에 표시
             self.set_window_label(init = True)
