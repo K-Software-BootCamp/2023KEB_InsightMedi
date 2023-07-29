@@ -321,7 +321,9 @@ class Controller():
             self.is_drawing = False
             self.end = (event.xdata, event.ydata)
             self.dcm_windowing_change()
-            self.label_clicked(self.dd.frame_number)
+
+            if self.dd.frame_label_check(self.dd.frame_number):
+                self.label_clicked(self.dd.frame_number)
 
     def dcm_windowing_change(self):
         """
@@ -437,10 +439,10 @@ class Controller():
             label_directory = frame_directory[drawing_type]
             for label in label_directory:
                 ld = label_directory[label]
-                #print("\nld:", ld)
                 coords = ld["coords"]
                 color = ld["color"]
                 annotation = None
+
                 if drawing_type == "line":
                     annotation = self.ax.plot(coords[0], coords[1], picker=True, label=label, color=color)
                 elif drawing_type == "rectangle":
@@ -455,6 +457,7 @@ class Controller():
                     x_coords, y_coords = zip(*coords)
                     annotation = self.ax.plot(
                         x_coords, y_coords, picker=True, label=label, color=color)[0]
+                    
                 if _label_name == label:
                     self.set_edge_thick(annotation, line_width=3)
 

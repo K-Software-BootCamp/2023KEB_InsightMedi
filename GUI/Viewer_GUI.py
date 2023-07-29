@@ -238,8 +238,12 @@ class MyWindow(QMainWindow):
         except: 
             self.statusBar().showMessage("")
     
-    def set_frame_label(self):
-        frame = self.dd.frame_number
+    def set_frame_label(self, init = False):
+        if init:
+            frame = 0
+        else:
+            frame = self.dd.frame_number
+        
         total_frame = int(self.dd.total_frame) - 1
         self.frame_label.setText(f"{frame} / {total_frame}")
 
@@ -248,8 +252,13 @@ class MyWindow(QMainWindow):
             self.wl_label.setText(f"WL: ")
             self.ww_label.setText(f"WW: ")
         else:
-            wl_value = self.dd.ds.WindowCenter
-            ww_value = self.dd.ds.WindowWidth
+            try:
+                wl_value = self.dd.ds.WindowCenter
+                ww_value = self.dd.ds.WindowWidth
+            except AttributeError:
+                wl_value = 255
+                ww_value = 255
+
             self.wl_label.setText(f"WL: {wl_value}")
             self.ww_label.setText(f"WW: {ww_value}")
 
@@ -288,6 +297,7 @@ class MyWindow(QMainWindow):
             self.set_status_bar()    # 현재 파일 경로 status bar에 표시
             self.set_window_label(init = True)
             self.set_tool_status_label(init = True)
+            self.set_frame_label(init = True)
 
             if dd.file_mode == "dcm":  # dcm 파일인 경우
                 self.set_window_label()

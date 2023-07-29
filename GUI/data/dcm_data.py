@@ -112,6 +112,7 @@ class DcmData():
     def open_dcm_file(self, fname):
         self.ds = dcmread(fname[0])
         self.pixel = self.ds.pixel_array
+        self.total_frame = 1
         if len(self.pixel.shape) == 3:
             self.image = self.pixel[0]
         else:
