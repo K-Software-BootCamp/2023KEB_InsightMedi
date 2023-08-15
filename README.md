@@ -103,3 +103,5 @@ draw_annotation에서 아예 label name을 함수의 parameter로 받도록
     - [x]  set_frame_label (slider bar 옆에)
 - [x]  status bar에는 현재 파일의 경로 보여주기로 변경
 - [x]  delete all 하면 버튼 다 비활성화 되는 것 수정하기
+
+["본 연구는 과학기술정보통신부 및 정보통신기획평가원의 SW전문인재양성사업의 연구결과로 수행되었음"(2022-0-01127) ]
