@@ -6,7 +6,7 @@
 
 국제의료표준인 DICOM을 공부하고 의료영상 라벨링 개선을 위한 라벨링툴을 개발하는 프로젝트입니다.
 
-#깃허브
+# 깃허브 링크
 
 ```
 https://github.com/viroovr/InsightMedi
