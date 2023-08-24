@@ -33,8 +33,8 @@ MIT 라이센스를 준수하며 ``LICENSE``에서 자세한 정보를 확인할
 - dicom 영상 file open하는 기능
 - 영상 위에 bounding box 그리기 기능 필요
 - bounding box에 대한 정보(좌표, label, color, 두께, ...)를 text file로 저장하는 기능 <-> bounding box text file을 토대로 영상에 표현해주는 기능
-- 실제 이미지와 화면상의 좌표 싱크 맞추기 필요 (image point - 이미지의 좌표, view point - 사용자 화면 상의 좌표 맞추기) -> converter 만들기! (중요)
-- bounding box에 대한 pixel size 표시해주는 기능도 추가하면 좋을 듯
+- 실제 이미지와 화면상의 좌표 싱크 맞추기 필요 (image point - 이미지의 좌표, view point - 사용자 화면 상의 좌표 맞추기) -> converter 만들기
+- bounding box에 대한 pixel size 표시해주는 기능 추가
 - 화면 크기에 맞추어 line, bounding box 늘어나도록 하기 (text file 이용하여)
 - windowing level 바꾸는 기능 (WW, WL)
 WW: windowing width
